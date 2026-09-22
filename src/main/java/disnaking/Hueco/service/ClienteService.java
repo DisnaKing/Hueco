@@ -1,5 +1,6 @@
 package disnaking.Hueco.service;
 
+import disnaking.Hueco.model.Cita;
 import disnaking.Hueco.model.Cliente;
 import disnaking.Hueco.repository.ClienteRepository;
 import org.springframework.http.HttpStatus;
@@ -16,18 +17,4 @@ public class ClienteService {
         this.clienteRepository = clienteRepository;
     }
 
-    public Cliente obtener(long id){
-        return clienteRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Cliente no encontrado"
-                ));
-    }
-
-    public List<Cliente> listar(){
-        return clienteRepository.findAll();
-    }
-
-    public Cliente crear(Cliente cliente){
-        return clienteRepository.save(cliente);
-    }
 }

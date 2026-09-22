@@ -65,4 +65,10 @@ public class CitaController {
 
     };
 
+    @DeleteMapping("/{id}/delete")
+    public ResponseEntity<Void> eliminar(@PathVariable long id){
+        citaRepository.delete(citaRepository.getReferenceById(id));
+        return ResponseEntity.noContent().build();
+    }
+
 }

@@ -1,6 +1,11 @@
 package disnaking.Hueco.controller;
 
+import disnaking.Hueco.DTO.Cita.citaClienteDTO;
+import disnaking.Hueco.DTO.Cliente.clienteInfoDTO;
+import disnaking.Hueco.DTO.Servicio.servicioInfoDTO;
+import disnaking.Hueco.model.Cita;
 import disnaking.Hueco.model.Cliente;
+import disnaking.Hueco.repository.ClienteRepository;
 import disnaking.Hueco.service.ClienteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,28 +17,42 @@ import java.util.List;
 @RequestMapping("/api/clientes")
 public class ClienteController {
 
-    private final ClienteService clienteService;
+    private final ClienteRepository clienteRepository;
 
-    public ClienteController(ClienteService clienteService) {
-        this.clienteService = clienteService;
+    public ClienteController(ClienteRepository clienteRepository) {
+        this.clienteRepository = clienteRepository;
     }
 
     @GetMapping
-    public List<Cliente> listar() {
-        return clienteService.listar();
+    public List<clienteInfoDTO> listar() {
+        return clienteRepository.findAll().stream()
+                .map(cliente -> new clienteInfoDTO(
+                        cliente.getId(),
+                        cliente.getName(),
+                        cliente.getCitas().stream()
+                                .map(cita-> new citaClienteDTO(
+                                        cita.getId(),
+                                        cita.getServicios().stream()
+                                                .map(servicio -> new servicioInfoDTO(
+                                                        servicio.getId(),
+                                                        servicio.getNombre()
+                                                )).toString(),
+                                        cita.getEstado()
+                                )).toList()
+                )).toList();
     }
 
     @GetMapping("/{id}")
     public Cliente mostrarCliente(@PathVariable long id){
-        return clienteService.obtener(id);
+        return clienteRepository.getReferenceById(id);
     }
 
     @PostMapping("/create")
     public ResponseEntity<Cliente> crear(@RequestBody Cliente cliente) {
-        Cliente creado = clienteService.crear(cliente);
+        Cliente creado = clienteRepository.save(cliente);
         URI location = URI.create("/clientes/" + creado.getId());
         return ResponseEntity.created(location).body(creado);
     }
 
-    
+
 }

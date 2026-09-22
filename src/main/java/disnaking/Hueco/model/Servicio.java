@@ -28,6 +28,14 @@ public class Servicio {
         return precio;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
     public long getId() {
         return id;
     }

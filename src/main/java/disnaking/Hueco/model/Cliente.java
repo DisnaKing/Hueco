@@ -32,4 +32,8 @@ public class Cliente {
     public void setName(String name) {
         this.name = name;
     }
+
+    public List<Cita> getCitas() {
+        return citas;
+    }
 }
