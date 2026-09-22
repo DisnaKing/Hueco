@@ -24,4 +24,12 @@ public class Cliente {
     public long getId() {
         return this.cliente_id;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

@@ -1,6 +1,8 @@
 package disnaking.Hueco.controller;
 
+import disnaking.Hueco.DTO.Cita.citaAgendaDTO;
 import disnaking.Hueco.DTO.Cita.citaPatchDTO;
+import disnaking.Hueco.DTO.Cliente.clienteAgendaDTO;
 import disnaking.Hueco.Exception.Cita.CitaNotFoundException;
 import disnaking.Hueco.model.Cita;
 import disnaking.Hueco.repository.CitaRepository;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -23,8 +26,16 @@ public class CitaController {
     }
 
     @GetMapping
-    public List<Cita> listar(){
-        return citaRepository.findAll();
+    public List<citaAgendaDTO> listar(){
+        return citaRepository.findAll().stream()
+                .map(cita -> new citaAgendaDTO(
+                        cita.getId(),
+                        cita.getFecha(),
+                        cita.getHora(),
+                        cita.getEstado(),
+                        new clienteAgendaDTO(cita.getCliente().getId(), cita.getCliente().getName())
+                ))
+                .toList();
     }
 
     @GetMapping("/{id}")
@@ -54,10 +65,4 @@ public class CitaController {
 
     };
 
-    @PostMapping("/{id}/servicios")
-    public Cita editServicios(@PathVariable @RequestBody Long id, String servicio){
-        Cita cita = citaRepository.findById(id).orElseThrow(() -> new CitaNotFoundException(id));
-
-
-    }
 }

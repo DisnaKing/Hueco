@@ -14,7 +14,7 @@ public class Cita {
 
     @Id
     @GeneratedValue
-    private int id;
+    private long id;
 
     @ManyToMany
     @JoinTable(name = "cita_servicio",
@@ -32,7 +32,7 @@ public class Cita {
     @JoinColumn(name="cliente_id")
     private Cliente cliente;
 
-    public Cita(int id, ArrayList<Servicio>servicios, LocalDate fecha, LocalTime hora, EstadoCita estado, Cliente cliente){
+    public Cita(long id, ArrayList<Servicio>servicios, LocalDate fecha, LocalTime hora, EstadoCita estado, Cliente cliente){
         this.id = id;
         this.servicios = servicios;
         this.fecha = fecha;
@@ -42,6 +42,34 @@ public class Cita {
     }
 
     public Cita() {}
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public List<Servicio> getServicios() {
+        return servicios;
+    }
+
+    public void setServicios(List<Servicio> servicios) {
+        this.servicios = servicios;
+    }
+
+    public LocalDate getFecha() {
+        return fecha;
+    }
+
+    public EstadoCita getEstado() {
+        return estado;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
 
     public int getDuracionTotalMinutos() {
         return servicios.stream()
@@ -59,7 +87,7 @@ public class Cita {
         this.fecha = fecha;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
