@@ -1,0 +1,63 @@
+package disnaking.Hueco.controller;
+
+import disnaking.Hueco.DTO.Cita.citaPatchDTO;
+import disnaking.Hueco.Exception.Cita.CitaNotFoundException;
+import disnaking.Hueco.model.Cita;
+import disnaking.Hueco.repository.CitaRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/citas")
+public class CitaController {
+
+    private final CitaRepository citaRepository;
+
+    public CitaController(CitaRepository repo){
+        citaRepository = repo;
+    }
+
+    @GetMapping
+    public List<Cita> listar(){
+        return citaRepository.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public Cita mostrarCliente(@PathVariable long id){
+        return citaRepository.findById(id).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Cita no encontrada"));
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<Cita> crear(@RequestBody Cita cita) {
+        Cita creado = citaRepository.save(cita);
+        URI location = URI.create("/clientes/" + creado.getId());
+        return ResponseEntity.created(location).body(creado);
+    }
+
+    @PatchMapping("/{id}")
+    public Cita edit(@PathVariable @RequestBody Long id, citaPatchDTO cambios){
+        Cita cita = citaRepository.findById(id).orElseThrow(() -> new CitaNotFoundException(id));
+
+        if (cambios.getFecha() != null) cita.setFecha(cambios.getFecha());
+
+        if (cambios.getHora() != null) cita.setHora(cambios.getHora());
+
+        if (cambios.getEstado() != null) cita.setEstado(cambios.getEstado());
+
+        return cita;
+
+    };
+
+    @PostMapping("/{id}/servicios")
+    public Cita editServicios(@PathVariable @RequestBody Long id, String servicio){
+        Cita cita = citaRepository.findById(id).orElseThrow(() -> new CitaNotFoundException(id));
+
+
+    }
+}
