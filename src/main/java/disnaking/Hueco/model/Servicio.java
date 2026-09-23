@@ -16,6 +16,7 @@ public class Servicio {
     private int duracionMinutos;
     private BigDecimal precio;
     private boolean activo;
+    private servicioCategoria categoria;
 
 
     public Servicio() {}
