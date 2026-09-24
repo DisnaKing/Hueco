@@ -13,6 +13,8 @@ export default {
   },
   hero: {
     esloganPorDefecto: 'Reserva tu cita en un momento',
+    reservarCita: 'Reservar cita',
+    llamar: 'Llamar',
     tituloServicios: 'Elige tus servicios',
     ayudaServicios: 'Puedes elegir varios. Verás el tiempo y el precio total abajo.',
     seleccionado: 'Elegido',
@@ -40,6 +42,10 @@ export default {
   errores: {
     servicios: 'No podemos mostrar los servicios ahora mismo',
     llamar: 'Llamar para reservar',
+  },
+  carta: {
+    titulo: 'Servicios',
+    ayuda: 'Toca un servicio para empezar tu reserva con él.',
   },
   sobreNosotros: {
     titulo: 'Sobre nosotros',
