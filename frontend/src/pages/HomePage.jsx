@@ -1,9 +1,44 @@
-import business from '@/business.config'
+import { useEffect, useState } from 'react'
+import { useLocation, useOutletContext } from 'react-router'
+import { useNegocio, useServicios } from '@/api/useFetch'
+import { scrollToId } from '@/lib/scroll'
+import Hero from '@/components/home/Hero'
+import BarraReserva from '@/components/home/BarraReserva'
 
 export default function HomePage() {
+  const negocio = useNegocio()
+  const servicios = useServicios()
+  const [seleccion, setSeleccion] = useState(() => new Set())
+  const { setBarraVisible } = useOutletContext()
+  const location = useLocation()
+
+  const elegidos = (servicios.data ?? []).filter((s) => seleccion.has(s.id))
+
+  function toggle(id) {
+    setSeleccion((actual) => {
+      const nueva = new Set(actual)
+      if (nueva.has(id)) nueva.delete(id)
+      else nueva.add(id)
+      return nueva
+    })
+  }
+
+  useEffect(() => {
+    setBarraVisible(elegidos.length > 0)
+  }, [elegidos.length, setBarraVisible])
+
+  useEffect(() => () => setBarraVisible(false), [setBarraVisible])
+
+  // Baja al ancla cuando ya ha cargado todo: los bloques de carga tienen otra altura
+  const cargado = !servicios.loading && !negocio.loading
+  useEffect(() => {
+    if (cargado && location.hash) scrollToId(location.hash.slice(1))
+  }, [cargado, location.hash, location.key])
+
   return (
-    <section id="servicios" className="mx-auto max-w-5xl scroll-mt-16 px-4 py-10">
-      <h1 className="font-display text-3xl">{business.nombre}</h1>
-    </section>
+    <>
+      <Hero negocio={negocio} servicios={servicios} seleccion={seleccion} onToggle={toggle} />
+      <BarraReserva elegidos={elegidos} />
+    </>
   )
 }

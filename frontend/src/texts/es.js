@@ -16,6 +16,7 @@ export default {
     tituloServicios: 'Elige tus servicios',
     ayudaServicios: 'Puedes elegir varios. Verás el tiempo y el precio total abajo.',
     seleccionado: 'Elegido',
+    otros: 'Otros',
   },
   estadoHoy: {
     abierto: (hora) => `Abierto hoy hasta las ${hora}`,
