@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 /*
  * Identidad visual del comercio. Para otro comercio basta con cambiar este bloque.
@@ -18,9 +19,28 @@
   --color-card: #ffffff;
 }
 
+/* Nombres que usan los componentes de shadcn/ui, apuntando a los tokens del comercio */
+@theme inline {
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-ink);
+  --color-primary-foreground: var(--color-primary-contrast);
+  --color-muted-foreground: var(--color-muted);
+  --color-accent: color-mix(in oklab, var(--color-ink) 8%, transparent);
+  --color-accent-foreground: var(--color-ink);
+  --color-secondary: color-mix(in oklab, var(--color-ink) 6%, transparent);
+  --color-secondary-foreground: var(--color-ink);
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-primary);
+  --color-destructive: #b42318;
+}
+
 @layer base {
+  * {
+    @apply border-line;
+  }
+
   html {
-    scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
   }
 
