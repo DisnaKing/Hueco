@@ -32,8 +32,8 @@ function Horario({ horario }) {
           const esHoy = dia === diaHoy
           return (
             <tr key={dia} className={cn(esHoy && 'bg-accent font-semibold')} aria-current={esHoy ? 'date' : undefined}>
-              <th scope="row" className="rounded-l-lg py-1.5 pl-2 font-[inherit] capitalize">
-                {texts.dias[dia]}
+              <th scope="row" className="rounded-l-lg py-1.5 pl-2 font-[inherit]">
+                <span className="capitalize">{texts.dias[dia]}</span>
                 {esHoy && <span className="ml-2 text-xs font-medium text-primary">({texts.contacto.hoy})</span>}
               </th>
               <td className="rounded-r-lg py-1.5 pr-2 text-right tabular-nums">

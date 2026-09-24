@@ -28,22 +28,23 @@ export default function MobileMenu() {
     setOpen(false)
   }
 
-  function onAnimationEnd(abierto) {
-    if (!abierto && pendiente.current) {
+  // Se llama cuando el panel ya se ha desmontado y el foco vuelve a ☰
+  function onCloseAutoFocus() {
+    if (pendiente.current) {
       navigate(pendiente.current)
       pendiente.current = null
     }
   }
 
   return (
-    <Drawer direction="right" open={open} onOpenChange={setOpen} onAnimationEnd={onAnimationEnd}>
+    <Drawer direction="right" open={open} onOpenChange={setOpen} autoFocus>
       <DrawerTrigger asChild>
         <Button variant="ghost" size="icon" className="size-10 md:hidden" aria-label={texts.nav.abrirMenu}>
           <Menu className="size-6" aria-hidden="true" />
         </Button>
       </DrawerTrigger>
 
-      <DrawerContent className="pb-[env(safe-area-inset-bottom)]">
+      <DrawerContent className="pb-[env(safe-area-inset-bottom)]" onCloseAutoFocus={onCloseAutoFocus}>
         <DrawerHeader className="flex-row items-center justify-between border-b border-line">
           <DrawerTitle className="font-display text-lg">{texts.nav.menu}</DrawerTitle>
           <DrawerDescription className="sr-only">{texts.nav.menu}</DrawerDescription>

@@ -15,7 +15,7 @@ export default function Header() {
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4">
         <Link to="/" className="mr-auto flex min-w-0 items-center gap-2 rounded-md">
           <img src={business.logo} alt="" width="36" height="36" className="size-9 shrink-0" />
-          <span className="truncate font-display text-lg font-semibold">{business.nombre}</span>
+          <span className="truncate font-display text-base font-semibold sm:text-lg">{business.nombre}</span>
         </Link>
 
         <nav aria-label={texts.nav.menu} className="mr-4 hidden items-center gap-6 md:flex">
@@ -30,7 +30,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <Button onClick={scrollToSelector} className="h-10 rounded-full px-5">
+        <Button onClick={scrollToSelector} className="h-10 rounded-full px-4 sm:px-5">
           {texts.nav.reservar}
         </Button>
 

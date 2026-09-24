@@ -14,8 +14,8 @@ export default function BarraReserva({ elegidos }) {
       inert={!visible}
       className={cn(
         'fixed inset-x-0 bottom-0 z-30 bg-primary pb-[env(safe-area-inset-bottom)] text-primary-contrast shadow-[0_-8px_24px_rgb(0_0_0/0.12)]',
-        'transition-transform duration-300 ease-out motion-reduce:transition-none',
-        visible ? 'translate-y-0' : 'translate-y-full',
+        'transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none',
+        visible ? 'visible translate-y-0' : 'invisible translate-y-full',
       )}
     >
       <div className="mx-auto flex h-20 max-w-5xl items-center justify-between gap-4 px-4">
