@@ -47,12 +47,12 @@ public class CitaController {
     @PostMapping("/create")
     public ResponseEntity<Cita> crear(@RequestBody Cita cita) {
         Cita creado = citaRepository.save(cita);
-        URI location = URI.create("/clientes/" + creado.getId());
+        URI location = URI.create("/api/citas/" + creado.getId());
         return ResponseEntity.created(location).body(creado);
     }
 
     @PatchMapping("/{id}")
-    public Cita edit(@PathVariable @RequestBody Long id, citaPatchDTO cambios){
+    public Cita edit(@PathVariable long id, @RequestBody citaPatchDTO cambios){
         Cita cita = citaRepository.findById(id).orElseThrow(() -> new CitaNotFoundException(id));
 
         if (cambios.getFecha() != null) cita.setFecha(cambios.getFecha());
@@ -61,7 +61,7 @@ public class CitaController {
 
         if (cambios.getEstado() != null) cita.setEstado(cambios.getEstado());
 
-        return cita;
+        return citaRepository.save(cita);
 
     };
 

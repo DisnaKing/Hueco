@@ -38,7 +38,7 @@ public class ServicioController {
     @PostMapping("/create")
     public ResponseEntity<Servicio> crear(@RequestBody Servicio servicio) {
         Servicio creado = servicioRepository.save(servicio);
-        URI location = URI.create("/clientes/" + creado.getId());
+        URI location = URI.create("/api/servicios/" + creado.getId());
         return ResponseEntity.created(location).body(creado);
     }
 }
