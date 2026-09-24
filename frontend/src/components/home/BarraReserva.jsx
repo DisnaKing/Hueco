@@ -13,7 +13,7 @@ export default function BarraReserva({ elegidos }) {
     <div
       inert={!visible}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-30 bg-primary pb-[env(safe-area-inset-bottom)] text-primary-contrast shadow-[0_-8px_24px_rgb(0_0_0/0.12)]',
+        'fixed inset-x-0 bottom-0 z-30 bg-primary pb-[env(safe-area-inset-bottom)] text-primary-contrast shadow-[0_-8px_24px] shadow-ink/10',
         'transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none',
         visible ? 'visible translate-y-0' : 'invisible translate-y-full',
       )}
