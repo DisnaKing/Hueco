@@ -4,6 +4,9 @@ import { useNegocio, useServicios } from '@/api/useFetch'
 import { scrollToId } from '@/lib/scroll'
 import Hero from '@/components/home/Hero'
 import BarraReserva from '@/components/home/BarraReserva'
+import SobreNosotros from '@/components/home/SobreNosotros'
+import Opiniones from '@/components/home/Opiniones'
+import Contacto from '@/components/home/Contacto'
 
 export default function HomePage() {
   const negocio = useNegocio()
@@ -38,6 +41,9 @@ export default function HomePage() {
   return (
     <>
       <Hero negocio={negocio} servicios={servicios} seleccion={seleccion} onToggle={toggle} />
+      <SobreNosotros negocio={negocio} />
+      <Opiniones testimonios={negocio.data?.testimonios} />
+      <Contacto negocio={negocio} />
       <BarraReserva elegidos={elegidos} />
     </>
   )
