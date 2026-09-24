@@ -1,5 +1,6 @@
 package disnaking.Hueco.DTO.Negocio;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 public class negocioDTO {
@@ -12,10 +13,12 @@ public class negocioDTO {
     private List<redSocialDTO> redesSociales;
     private List<testimonioDTO> testimonios;
     private estadoHoyDTO estadoHoy;
+    // Día de hoy en la zona horaria del comercio
+    private DayOfWeek hoy;
 
     public negocioDTO(String eslogan, String sobreNosotros, String direccion, String telefono, String email,
                       List<diaHorarioDTO> horario, List<redSocialDTO> redesSociales,
-                      List<testimonioDTO> testimonios, estadoHoyDTO estadoHoy) {
+                      List<testimonioDTO> testimonios, estadoHoyDTO estadoHoy, DayOfWeek hoy) {
         this.eslogan = eslogan;
         this.sobreNosotros = sobreNosotros;
         this.direccion = direccion;
@@ -25,6 +28,7 @@ public class negocioDTO {
         this.redesSociales = redesSociales;
         this.testimonios = testimonios;
         this.estadoHoy = estadoHoy;
+        this.hoy = hoy;
     }
 
     public String getEslogan() {
@@ -61,5 +65,9 @@ public class negocioDTO {
 
     public estadoHoyDTO getEstadoHoy() {
         return estadoHoy;
+    }
+
+    public DayOfWeek getHoy() {
+        return hoy;
     }
 }

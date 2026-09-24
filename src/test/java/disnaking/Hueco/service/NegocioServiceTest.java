@@ -103,6 +103,15 @@ class NegocioServiceTest {
     }
 
     @Test
+    void hoyUsaLaZonaDelComercio() {
+        // Domingo 23:30 en UTC ya es lunes 1:30 en Madrid
+        Instant instante = DOMINGO.atTime(23, 30).atZone(ZoneOffset.UTC).toInstant();
+        NegocioService service = new NegocioService(mock(NegocioRepository.class), Clock.fixed(instante, MADRID));
+
+        assertThat(service.hoy()).isEqualTo(DayOfWeek.MONDAY);
+    }
+
+    @Test
     void sinHorarioNoHayProximaApertura() {
         Instant instante = LUNES.atTime(10, 0).atZone(MADRID).toInstant();
         NegocioService service = new NegocioService(mock(NegocioRepository.class), Clock.fixed(instante, MADRID));

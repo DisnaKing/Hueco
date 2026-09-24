@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -35,6 +36,10 @@ public class NegocioService {
     @Transactional(readOnly = true)
     public Optional<negocioDTO> obtener() {
         return negocioRepository.findById(NEGOCIO_ID).map(this::toDTO);
+    }
+
+    public DayOfWeek hoy() {
+        return LocalDate.now(clock).getDayOfWeek();
     }
 
     public estadoHoyDTO estadoHoy(List<TramoHorario> horario) {
@@ -84,7 +89,8 @@ public class NegocioService {
                         .sorted(Comparator.comparingInt(Testimonio::getOrden))
                         .map(testimonio -> new testimonioDTO(testimonio.getAutor(), testimonio.getTexto()))
                         .toList(),
-                estadoHoy(negocio.getHorario())
+                estadoHoy(negocio.getHorario()),
+                hoy()
         );
     }
 
