@@ -15,10 +15,6 @@ export default {
     esloganPorDefecto: 'Reserva tu cita en un momento',
     reservarCita: 'Reservar cita',
     llamar: 'Llamar',
-    tituloServicios: 'Elige tus servicios',
-    ayudaServicios: 'Puedes elegir varios. Verás el tiempo y el precio total abajo.',
-    seleccionado: 'Elegido',
-    otros: 'Otros',
   },
   estadoHoy: {
     abierto: (hora) => `Abierto hoy hasta las ${hora}`,
@@ -37,7 +33,7 @@ export default {
   },
   barra: {
     servicios: (n) => (n === 1 ? '1 servicio' : `${n} servicios`),
-    verHorarios: 'Ver horarios',
+    continuar: 'Continuar',
   },
   errores: {
     servicios: 'No podemos mostrar los servicios ahora mismo',
@@ -76,11 +72,17 @@ export default {
     derechos: 'Todos los derechos reservados.',
   },
   reservar: {
-    titulo: 'Tu reserva',
-    proximamente: 'Próximamente: elige fecha y hora',
-    sinServicios: 'No has elegido ningún servicio.',
+    pasos: ['Servicios', 'Fecha y hora', 'Tus datos y confirmar'],
+    paso: (n, total) => `Paso ${n} de ${total}`,
+    tituloServicios: 'Elige tus servicios',
+    ayudaServicios: 'Puedes elegir varios. Verás el tiempo y el precio total abajo.',
+    categorias: 'Categorías',
+    otros: 'Otros',
+    tituloHorario: 'Elige fecha y hora',
+    tusServicios: 'Tus servicios',
     total: 'Total',
-    elegirServicios: 'Elegir servicios',
+    proximamente: 'Próximamente: elige fecha y hora',
+    cambiarServicios: 'Cambiar servicios',
   },
   login: {
     titulo: 'Iniciar sesión',
