@@ -1,5 +1,6 @@
 package disnaking.Hueco.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -41,6 +42,8 @@ public class Cita {
         this.cliente = cliente;
     }
 
+    // Jackson debe usar este constructor al leer el cuerpo de POST /create, no el de todos los campos
+    @JsonCreator
     public Cita() {}
 
     public void setId(long id) {
