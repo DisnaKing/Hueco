@@ -1,5 +1,6 @@
 package disnaking.Hueco.controller;
 
+import disnaking.Hueco.DTO.Servicio.servicioInfoDTO;
 import disnaking.Hueco.model.Servicio;
 import disnaking.Hueco.repository.ServicioRepository;
 import org.springframework.http.HttpStatus;
@@ -22,8 +23,10 @@ public class ServicioController {
     }
 
     @GetMapping
-    public List<Servicio> listar() {
-        return servicioRepository.findAll();
+    public List<servicioInfoDTO> listar() {
+        return servicioRepository.findByActivoTrueOrderByOrdenAsc().stream()
+                .map(servicioInfoDTO::from)
+                .toList();
     }
 
     @GetMapping("/{id}")

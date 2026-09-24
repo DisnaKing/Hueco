@@ -1,7 +1,5 @@
 package disnaking.Hueco.DTO.Servicio;
 
-import disnaking.Hueco.model.servicioCategoria;
-
 import java.math.BigDecimal;
 
 public class servicioDTO {
@@ -10,9 +8,9 @@ public class servicioDTO {
     private int duracionMinutos;
     private BigDecimal precio;
     private boolean activo;
-    private servicioCategoria categoria;
+    private String categoria;
 
-    public servicioDTO(long id, String name, int duracionMinutos, BigDecimal precio, boolean activo, servicioCategoria categoria) {
+    public servicioDTO(long id, String name, int duracionMinutos, BigDecimal precio, boolean activo, String categoria) {
         this.id = id;
         this.name = name;
         this.duracionMinutos = duracionMinutos;

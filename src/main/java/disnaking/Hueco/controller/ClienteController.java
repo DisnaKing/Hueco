@@ -33,10 +33,7 @@ public class ClienteController {
                                 .map(cita-> new citaClienteDTO(
                                         cita.getId(),
                                         cita.getServicios().stream()
-                                                .map(servicio -> new servicioInfoDTO(
-                                                        servicio.getId(),
-                                                        servicio.getNombre()
-                                                )).toString(),
+                                                .map(servicioInfoDTO::from).toString(),
                                         cita.getEstado()
                                 )).toList()
                 )).toList();
