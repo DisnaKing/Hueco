@@ -1,5 +1,7 @@
 package disnaking.Hueco.controller;
 
+import static disnaking.Hueco.Credenciales.COMERCIO;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,7 +31,7 @@ class CitaTotalesTest {
     private JdbcTemplate jdbc;
 
     private String crear(String servicios) throws Exception {
-        return mockMvc.perform(post("/api/citas/create")
+        return mockMvc.perform(post("/api/citas/create").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fecha\": \"2026-10-05\", \"hora\": \"09:00\", \"servicios\": " + servicios + "}"))
                 .andExpect(status().isCreated())
@@ -40,7 +42,7 @@ class CitaTotalesTest {
     void guardaLaSumaDeDuracionYPrecio() throws Exception {
         String location = crear("[1, 2]");
 
-        mockMvc.perform(get(location))
+        mockMvc.perform(get(location).with(COMERCIO))
                 .andExpect(jsonPath("$.duracionMinutos").value(90))
                 .andExpect(jsonPath("$.precioTotal").value(47.0))
                 .andExpect(jsonPath("$.estado").value("PENDIENTE"));
@@ -52,7 +54,7 @@ class CitaTotalesTest {
 
         jdbc.update("UPDATE servicio SET duracion_minutos = 999, precio = 999 WHERE id = 1");
 
-        mockMvc.perform(get(location))
+        mockMvc.perform(get(location).with(COMERCIO))
                 .andExpect(jsonPath("$.duracionMinutos").value(90))
                 .andExpect(jsonPath("$.precioTotal").value(47.0));
     }
@@ -60,7 +62,7 @@ class CitaTotalesTest {
     @Test
     void sinServiciosOConUnoQueNoExisteResponde400() throws Exception {
         for (String servicios : new String[]{"[]", "[1, 999]"}) {
-            mockMvc.perform(post("/api/citas/create")
+            mockMvc.perform(post("/api/citas/create").with(COMERCIO)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"fecha\": \"2026-10-05\", \"hora\": \"09:00\", \"servicios\": " + servicios + "}"))
                     .andExpect(status().isBadRequest());

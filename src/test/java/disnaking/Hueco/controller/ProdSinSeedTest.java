@@ -12,7 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Fuera del perfil dev no se carga la peluquería de ejemplo
-@SpringBootTest
+// Se le da una clave de agenda: sin ella el perfil prod no arranca (ver SeguridadTest)
+@SpringBootTest(properties = "hueco.agenda.clave-hash=$2a$10$30PwrryLiwhPiQtpsf74z.EwMzmYWp.De8HlduUIR5.hM.neQnRUW")
 @AutoConfigureMockMvc
 @ActiveProfiles("prod")
 class ProdSinSeedTest {

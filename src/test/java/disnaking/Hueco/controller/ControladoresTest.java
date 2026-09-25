@@ -1,5 +1,7 @@
 package disnaking.Hueco.controller;
 
+import static disnaking.Hueco.Credenciales.COMERCIO;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,7 +26,7 @@ class ControladoresTest {
 
     @Test
     void listarClientesMuestraLosNombresDeLosServicios() throws Exception {
-        mockMvc.perform(get("/api/clientes"))
+        mockMvc.perform(get("/api/clientes").with(COMERCIO))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Ana"))
                 .andExpect(jsonPath("$[0].citas[0].name", allOf(containsString("Corte"), containsString("Tinte"))))
@@ -33,13 +35,13 @@ class ControladoresTest {
 
     @Test
     void patchDeCitaGuardaLosCambios() throws Exception {
-        mockMvc.perform(patch("/api/citas/101")
+        mockMvc.perform(patch("/api/citas/101").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"estado\": \"CONFIRMADA\", \"hora\": \"12:30\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("CONFIRMADA"));
 
-        mockMvc.perform(get("/api/citas/101"))
+        mockMvc.perform(get("/api/citas/101").with(COMERCIO))
                 .andExpect(jsonPath("$.estado").value("CONFIRMADA"))
                 .andExpect(jsonPath("$.hora").value(startsWith("12:30")))
                 // Lo que no viene en el PATCH no cambia
@@ -48,7 +50,7 @@ class ControladoresTest {
 
     @Test
     void crearCitaDevuelveSuLocation() throws Exception {
-        mockMvc.perform(post("/api/citas/create")
+        mockMvc.perform(post("/api/citas/create").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fecha\": \"2026-10-05\", \"hora\": \"09:00\", \"servicios\": [1]}"))
                 .andExpect(status().isCreated())
@@ -57,7 +59,7 @@ class ControladoresTest {
 
     @Test
     void crearServicioDevuelveSuLocation() throws Exception {
-        mockMvc.perform(post("/api/servicios/create")
+        mockMvc.perform(post("/api/servicios/create").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isCreated())
@@ -66,7 +68,7 @@ class ControladoresTest {
 
     @Test
     void crearClienteDevuelveSuLocation() throws Exception {
-        mockMvc.perform(post("/api/clientes/create")
+        mockMvc.perform(post("/api/clientes/create").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": \"Luis\"}"))
                 .andExpect(status().isCreated())
