@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import texts from '@/texts/es'
 import { useServicios } from '@/api/useFetch'
-import { agruparPorCategoria } from '@/lib/format'
+import { agruparPorCategoria, textoTotales } from '@/lib/format'
 import { anclaCategoria, parseIds, serviciosElegidos } from '@/lib/seleccion'
 import { Skeleton } from '@/components/ui/skeleton'
 import PasoIndicador from '@/components/reservar/PasoIndicador'
@@ -63,7 +63,12 @@ export default function ServiciosPage() {
         </div>
       </div>
 
-      <BarraReserva elegidos={elegidos} to={`/reservar/horario?servicios=${idsElegidos}`} />
+      <BarraReserva
+        visible={elegidos.length > 0}
+        titulo={texts.barra.servicios(elegidos.length)}
+        detalle={textoTotales(elegidos)}
+        to={`/reservar/horario?servicios=${idsElegidos}`}
+      />
     </>
   )
 }

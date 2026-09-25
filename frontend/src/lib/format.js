@@ -2,6 +2,8 @@ import texts from '@/texts/es'
 
 const precioFormatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' })
 const diaMesFormatter = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' })
+const diaSemanaFormatter = new Intl.DateTimeFormat('es-ES', { weekday: 'long' })
+const mesCortoFormatter = new Intl.DateTimeFormat('es-ES', { month: 'short' })
 const MS_DIA = 24 * 60 * 60 * 1000
 
 // 75 → "1 h 15 min"; 30 → "30 min"; 60 → "1 h"
@@ -33,6 +35,31 @@ export function parseFecha(iso) {
 // "2026-12-24" → "24 de diciembre"
 export function formatDiaMes(iso) {
   return diaMesFormatter.format(parseFecha(iso))
+}
+
+// Date local → "2026-10-02", el formato del backend
+export function toIso(fecha) {
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  return `${fecha.getFullYear()}-${mes}-${dia}`
+}
+
+// "2026-10-02" → "viernes 2"
+export function formatDiaSemanaNumero(iso) {
+  const fecha = parseFecha(iso)
+  return `${diaSemanaFormatter.format(fecha)} ${fecha.getDate()}`
+}
+
+// "2026-10-02" → "viernes 2 de octubre"
+export function formatFechaLarga(iso) {
+  return `${diaSemanaFormatter.format(parseFecha(iso))} ${formatDiaMes(iso)}`
+}
+
+// "2026-10-02" → "Viernes 2 oct"
+export function formatFechaCorta(iso) {
+  const fecha = parseFecha(iso)
+  const texto = `${diaSemanaFormatter.format(fecha)} ${fecha.getDate()} ${mesCortoFormatter.format(fecha).replace('.', '')}`
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
 // "Cerrado el 24 de diciembre · Navidad", "Cerrado del 24 al 26 de diciembre · Navidad"
@@ -67,6 +94,12 @@ export function calcularTotales(servicios) {
     duracionMinutos: servicios.reduce((total, s) => total + s.duracionMinutos, 0),
     precio: centimos / 100,
   }
+}
+
+// "1 h 15 min · 40,00 €"
+export function textoTotales(servicios) {
+  const { duracionMinutos, precio } = calcularTotales(servicios)
+  return `${formatDuracion(duracionMinutos)} · ${formatPrecio(precio)}`
 }
 
 // Convierte estadoHoy del backend en la frase del hero.
