@@ -62,4 +62,12 @@ INSERT INTO cita (id, fecha, hora, estado, cliente_id, duracion_minutos, precio_
 INSERT INTO cita_servicio (cita_id, servicio_id) VALUES
 (1, 5), (2, 1), (3, 4), (4, 8), (5, 2), (6, 5), (7, 8), (8, 5), (8, 8), (9, 5), (9, 4);
 
+-- Clientes de ejemplo para ver nombres y teléfonos en la agenda
+INSERT INTO cliente (cliente_id, name, telefono, email, creado_en) VALUES
+(1, 'Lucía Martín', '+34611000001', 'lucia@example.com', CURRENT_TIMESTAMP),
+(2, 'Javier Ruiz', '+34622000002', NULL, CURRENT_TIMESTAMP);
+UPDATE cita SET cliente_id = 1 WHERE id IN (1, 3, 6);
+UPDATE cita SET cliente_id = 2, notas = 'Prefiere máquina del 2' WHERE id IN (2, 5, 8);
+
 ALTER SEQUENCE cita_seq RESTART WITH 101;
+ALTER SEQUENCE cliente_seq RESTART WITH 101;
