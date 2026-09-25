@@ -54,11 +54,14 @@ public class HuecoService {
         Negocio negocio = negocioRepository.findById(NEGOCIO_ID).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Negocio no encontrado"));
 
+        return calculadora.dias(negocio.getHorario(), negocio.getCierres(), ocupacionesDelPlazo(), duracion);
+    }
+
+    // Citas de hoy hasta el final del plazo de reserva, como las necesita la calculadora
+    public List<Ocupacion> ocupacionesDelPlazo() {
         LocalDate hoy = LocalDate.now(clock);
-        List<Ocupacion> ocupaciones = citaRepository.findByFechaBetween(hoy, hoy.plusDays(reglas.diasVista() - 1)).stream()
+        return citaRepository.findByFechaBetween(hoy, hoy.plusDays(reglas.diasVista() - 1)).stream()
                 .map(c -> new Ocupacion(c.getFecha(), c.getHora(), c.getDuracionMinutos(), c.getEstado()))
                 .toList();
-
-        return calculadora.dias(negocio.getHorario(), negocio.getCierres(), ocupaciones, duracion);
     }
 }

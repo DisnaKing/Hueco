@@ -8,6 +8,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 public class Cita {
@@ -37,6 +38,13 @@ public class Cita {
     private int duracionMinutos;
     @Column(nullable = false)
     private BigDecimal precioTotal;
+
+    @Column(length = 300)
+    private String notas;
+
+    // Identificador público de la cita (enlace de confirmación, .ics): no deja adivinar otras citas
+    @Column(unique = true, length = 36)
+    private String token;
 
     public Cita(long id, ArrayList<Servicio>servicios, LocalDate fecha, LocalTime hora, EstadoCita estado, Cliente cliente){
         this.id = id;
@@ -80,6 +88,7 @@ public class Cita {
     // Se calcula una sola vez, al guardar la cita por primera vez
     @PrePersist
     void calcularTotales() {
+        if (token == null) token = UUID.randomUUID().toString();
         duracionMinutos = servicios.stream()
                 .mapToInt(Servicio::getDuracionMinutos)
                 .sum();
@@ -114,5 +123,17 @@ public class Cita {
 
     public void setEstado(EstadoCita estado) {
         this.estado = estado;
+    }
+
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
+    }
+
+    public String getToken() {
+        return token;
     }
 }
