@@ -6,6 +6,10 @@ import {
   formatHora,
   formatPrecio,
   formatDiaMes,
+  formatDiaSemanaNumero,
+  formatFechaCorta,
+  formatFechaLarga,
+  toIso,
   textoCierre,
   textoEstadoHoy,
 } from './format'
@@ -135,5 +139,16 @@ describe('textoCierre', () => {
     expect(textoCierre({ desde: '2026-12-30', hasta: '2027-01-02', motivo: null })).toBe(
       'Cerrado del 30 de diciembre al 2 de enero',
     )
+  })
+})
+
+describe('fechas del calendario', () => {
+  it('toIso usa la fecha local', () => {
+    expect(toIso(new Date(2026, 9, 2, 23, 30))).toBe('2026-10-02')
+  })
+  it('formatos de un día', () => {
+    expect(formatDiaSemanaNumero('2026-10-02')).toBe('viernes 2')
+    expect(formatFechaLarga('2026-10-02')).toBe('viernes 2 de octubre')
+    expect(formatFechaCorta('2026-10-02')).toBe('Viernes 2 oct')
   })
 })

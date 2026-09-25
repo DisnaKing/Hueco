@@ -15,4 +15,16 @@ public class clienteInfoDTO {
         this.name = name;
         this.citas = citas;
     }
+
+    public long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public List<citaClienteDTO> getCitas() {
+        return citas;
+    }
 }

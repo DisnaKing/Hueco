@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Sql("/home-endpoints.sql")
+@Sql({"/limpiar.sql", "/home-endpoints.sql"})
 class HomeEndpointsTest {
 
     @Autowired

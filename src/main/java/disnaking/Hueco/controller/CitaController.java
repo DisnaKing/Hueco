@@ -1,11 +1,13 @@
 package disnaking.Hueco.controller;
 
 import disnaking.Hueco.DTO.Cita.citaAgendaDTO;
+import disnaking.Hueco.DTO.Cita.citaCrearDTO;
 import disnaking.Hueco.DTO.Cita.citaPatchDTO;
 import disnaking.Hueco.DTO.Cliente.clienteAgendaDTO;
 import disnaking.Hueco.Exception.Cita.CitaNotFoundException;
 import disnaking.Hueco.model.Cita;
 import disnaking.Hueco.repository.CitaRepository;
+import disnaking.Hueco.service.CitaService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +22,11 @@ import java.util.List;
 public class CitaController {
 
     private final CitaRepository citaRepository;
+    private final CitaService citaService;
 
-    public CitaController(CitaRepository repo){
+    public CitaController(CitaRepository repo, CitaService citaService){
         citaRepository = repo;
+        this.citaService = citaService;
     }
 
     @GetMapping
@@ -45,14 +49,14 @@ public class CitaController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Cita> crear(@RequestBody Cita cita) {
-        Cita creado = citaRepository.save(cita);
-        URI location = URI.create("/clientes/" + creado.getId());
+    public ResponseEntity<Cita> crear(@RequestBody citaCrearDTO datos) {
+        Cita creado = citaService.crear(datos);
+        URI location = URI.create("/api/citas/" + creado.getId());
         return ResponseEntity.created(location).body(creado);
     }
 
     @PatchMapping("/{id}")
-    public Cita edit(@PathVariable @RequestBody Long id, citaPatchDTO cambios){
+    public Cita edit(@PathVariable long id, @RequestBody citaPatchDTO cambios){
         Cita cita = citaRepository.findById(id).orElseThrow(() -> new CitaNotFoundException(id));
 
         if (cambios.getFecha() != null) cita.setFecha(cambios.getFecha());
@@ -61,7 +65,7 @@ public class CitaController {
 
         if (cambios.getEstado() != null) cita.setEstado(cambios.getEstado());
 
-        return cita;
+        return citaRepository.save(cita);
 
     };
 

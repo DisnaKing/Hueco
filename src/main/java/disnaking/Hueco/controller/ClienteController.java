@@ -2,9 +2,9 @@ package disnaking.Hueco.controller;
 
 import disnaking.Hueco.DTO.Cita.citaClienteDTO;
 import disnaking.Hueco.DTO.Cliente.clienteInfoDTO;
-import disnaking.Hueco.DTO.Servicio.servicioInfoDTO;
 import disnaking.Hueco.model.Cita;
 import disnaking.Hueco.model.Cliente;
+import disnaking.Hueco.model.Servicio;
 import disnaking.Hueco.repository.ClienteRepository;
 import disnaking.Hueco.service.ClienteService;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -33,7 +34,8 @@ public class ClienteController {
                                 .map(cita-> new citaClienteDTO(
                                         cita.getId(),
                                         cita.getServicios().stream()
-                                                .map(servicioInfoDTO::from).toString(),
+                                                .map(Servicio::getNombre)
+                                                .collect(Collectors.joining(", ")),
                                         cita.getEstado()
                                 )).toList()
                 )).toList();
@@ -47,7 +49,7 @@ public class ClienteController {
     @PostMapping("/create")
     public ResponseEntity<Cliente> crear(@RequestBody Cliente cliente) {
         Cliente creado = clienteRepository.save(cliente);
-        URI location = URI.create("/clientes/" + creado.getId());
+        URI location = URI.create("/api/clientes/" + creado.getId());
         return ResponseEntity.created(location).body(creado);
     }
 

@@ -1,11 +1,4 @@
 -- Datos mínimos para HomeEndpointsTest, independientes del seed de desarrollo
-DELETE FROM negocio_cierre;
-DELETE FROM negocio_testimonio;
-DELETE FROM negocio_red_social;
-DELETE FROM negocio_horario;
-DELETE FROM negocio;
-DELETE FROM servicio;
-
 -- El 3 está inactivo; el orden no coincide con el id
 INSERT INTO servicio (id, nombre, descripcion, duracion_minutos, precio, categoria, orden, activo) VALUES
 (1, 'Servicio B', 'Descripción B', 45, 25.00, 'Cat 1', 2, TRUE),

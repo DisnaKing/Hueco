@@ -42,3 +42,24 @@ INSERT INTO negocio_testimonio (negocio_id, autor, texto, orden) VALUES
 -- Vacaciones de 2 días la semana que viene, relativas a hoy para que el seed no caduque
 INSERT INTO negocio_cierre (negocio_id, desde, hasta, motivo) VALUES
 (1, DATEADD('DAY', 7, CURRENT_DATE), DATEADD('DAY', 8, CURRENT_DATE), 'Vacaciones');
+
+-- Citas para ver horas ocupadas en el calendario. Caen en el martes y el miércoles de dentro
+-- de dos semanas (ISO_DAY_OF_WEEK: lunes = 1), lejos de las vacaciones y siempre en día laborable.
+-- Martes casi lleno: solo quedan huecos cortos hacia las 12:15.
+-- Miércoles: la mañana entera ocupada.
+-- Jueves: completo, para ver el día tachado en el calendario.
+INSERT INTO cita (id, fecha, hora, estado, cliente_id, duracion_minutos, precio_total) VALUES
+(1, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '09:00', 'CONFIRMADA', NULL, 120, 65.00),
+(2, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '11:15', 'CONFIRMADA', NULL, 45, 25.00),
+(3, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '16:00', 'PENDIENTE', NULL, 60, 32.00),
+(4, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '17:15', 'CONFIRMADA', NULL, 90, 80.00),
+(5, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '19:00', 'CONFIRMADA', NULL, 30, 15.00),
+(6, DATEADD('DAY', 17 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '09:00', 'CONFIRMADA', NULL, 120, 65.00),
+(7, DATEADD('DAY', 17 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '11:15', 'PENDIENTE', NULL, 90, 80.00),
+(8, DATEADD('DAY', 18 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '09:00', 'CONFIRMADA', NULL, 265, 150.00),
+(9, DATEADD('DAY', 18 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '16:00', 'CONFIRMADA', NULL, 235, 130.00);
+
+INSERT INTO cita_servicio (cita_id, servicio_id) VALUES
+(1, 5), (2, 1), (3, 4), (4, 8), (5, 2), (6, 5), (7, 8), (8, 5), (8, 8), (9, 5), (9, 4);
+
+ALTER SEQUENCE cita_seq RESTART WITH 101;
