@@ -1,4 +1,5 @@
 -- Datos mínimos para HomeEndpointsTest, independientes del seed de desarrollo
+DELETE FROM negocio_cierre;
 DELETE FROM negocio_testimonio;
 DELETE FROM negocio_red_social;
 DELETE FROM negocio_horario;
@@ -32,3 +33,8 @@ INSERT INTO negocio_testimonio (negocio_id, autor, texto, orden) VALUES
 (1, 'Tercero', 'Texto 3', 3),
 (1, 'Primero', 'Texto 1', 1),
 (1, 'Segundo', 'Texto 2', 2);
+
+-- Uno dentro del plazo de 30 días y otro fuera, que no debe salir
+INSERT INTO negocio_cierre (negocio_id, desde, hasta, motivo) VALUES
+(1, DATEADD('DAY', 60, CURRENT_DATE), DATEADD('DAY', 61, CURRENT_DATE), 'Lejano'),
+(1, DATEADD('DAY', 10, CURRENT_DATE), DATEADD('DAY', 12, CURRENT_DATE), 'Vacaciones');

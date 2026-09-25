@@ -31,6 +31,10 @@ public class Negocio {
     @CollectionTable(name = "negocio_testimonio", joinColumns = @JoinColumn(name = "negocio_id"))
     private List<Testimonio> testimonios = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "negocio_cierre", joinColumns = @JoinColumn(name = "negocio_id"))
+    private List<CierrePuntual> cierres = new ArrayList<>();
+
     public Negocio() {}
 
     public long getId() {
@@ -67,5 +71,9 @@ public class Negocio {
 
     public List<Testimonio> getTestimonios() {
         return testimonios;
+    }
+
+    public List<CierrePuntual> getCierres() {
+        return cierres;
     }
 }

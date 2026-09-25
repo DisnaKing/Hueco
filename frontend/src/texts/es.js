@@ -20,6 +20,7 @@ export default {
     abierto: (hora) => `Abierto hoy hasta las ${hora}`,
     abreHoy: (hora) => `Hoy abrimos a las ${hora}`,
     cerrado: 'Cerrado',
+    // dia es "lunes" o, si falta más de una semana, "5 de enero"
     proximaApertura: (dia, hora) => `Cerrado · Abrimos el ${dia} a las ${hora}`,
   },
   dias: {
@@ -59,6 +60,8 @@ export default {
     cerrado: 'Cerrado',
     hoy: 'hoy',
     redes: 'Síguenos',
+    cierreUnDia: (fecha) => `Cerrado el ${fecha}`,
+    cierreVariosDias: (desde, hasta) => `Cerrado del ${desde} al ${hasta}`,
     redNombres: {
       INSTAGRAM: 'Instagram',
       FACEBOOK: 'Facebook',

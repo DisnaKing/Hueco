@@ -38,3 +38,7 @@ INSERT INTO negocio_testimonio (negocio_id, autor, texto, orden) VALUES
 (1, 'Lucía M.', 'Salí encantada con el corte. Me explicaron todo y el resultado fue justo lo que pedía.', 1),
 (1, 'Javier R.', 'Rápidos, puntuales y muy buen trato. Ya no voy a otro sitio.', 2),
 (1, 'Marta G.', 'Las mechas me duraron muchísimo. Repetiré seguro.', 3);
+
+-- Vacaciones de 2 días la semana que viene, relativas a hoy para que el seed no caduque
+INSERT INTO negocio_cierre (negocio_id, desde, hasta, motivo) VALUES
+(1, DATEADD('DAY', 7, CURRENT_DATE), DATEADD('DAY', 8, CURRENT_DATE), 'Vacaciones');

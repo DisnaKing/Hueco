@@ -1,7 +1,7 @@
-import { Clock, ExternalLink, Mail, MapPin, Phone } from 'lucide-react'
+import { CalendarX, Clock, ExternalLink, Mail, MapPin, Phone } from 'lucide-react'
 import business from '@/business.config'
 import texts from '@/texts/es'
-import { formatHora } from '@/lib/format'
+import { formatHora, textoCierre } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -72,6 +72,20 @@ export default function Contacto({ negocio }) {
               </a>
             </Dato>
           </div>
+        )}
+
+        {data?.cierres?.length > 0 && (
+          <ul className="mt-6 flex flex-col gap-2">
+            {data.cierres.map((cierre) => (
+              <li
+                key={cierre.desde}
+                className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 font-medium"
+              >
+                <CalendarX className="size-5 shrink-0 text-primary" aria-hidden="true" />
+                {textoCierre(cierre)}
+              </li>
+            ))}
+          </ul>
         )}
 
         {data && (

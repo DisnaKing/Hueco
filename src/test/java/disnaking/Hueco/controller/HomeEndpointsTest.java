@@ -62,6 +62,11 @@ class HomeEndpointsTest {
                 .andExpect(jsonPath("$.estadoHoy.hora").isString())
                 .andExpect(jsonPath("$.estadoHoy.dia").isString())
                 .andExpect(jsonPath("$.hoy", in(new String[]{
-                        "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"})));
+                        "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"})))
+                .andExpect(jsonPath("$.estadoHoy.fecha").isString())
+                .andExpect(jsonPath("$.cierres", hasSize(1)))
+                .andExpect(jsonPath("$.cierres[0].motivo").value("Vacaciones"))
+                .andExpect(jsonPath("$.cierres[0].desde").isString())
+                .andExpect(jsonPath("$.cierres[0].hasta").isString());
     }
 }

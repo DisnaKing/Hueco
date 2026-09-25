@@ -1,6 +1,8 @@
 import texts from '@/texts/es'
 
 const precioFormatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' })
+const diaMesFormatter = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' })
+const MS_DIA = 24 * 60 * 60 * 1000
 
 // 75 → "1 h 15 min"; 30 → "30 min"; 60 → "1 h"
 export function formatDuracion(minutos) {
@@ -20,6 +22,31 @@ export function formatPrecio(precio) {
 export function formatHora(hora) {
   const [h, m] = hora.split(':')
   return `${Number(h)}:${m}`
+}
+
+// "2026-12-24" → fecha local, sin el desfase de new Date("2026-12-24"), que la toma en UTC
+export function parseFecha(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// "2026-12-24" → "24 de diciembre"
+export function formatDiaMes(iso) {
+  return diaMesFormatter.format(parseFecha(iso))
+}
+
+// "Cerrado el 24 de diciembre · Navidad", "Cerrado del 24 al 26 de diciembre · Navidad"
+// o "Cerrado del 30 de diciembre al 2 de enero · Navidad"
+export function textoCierre({ desde, hasta, motivo }) {
+  let texto
+  if (desde === hasta) {
+    texto = texts.contacto.cierreUnDia(formatDiaMes(desde))
+  } else if (desde.slice(0, 7) === hasta.slice(0, 7)) {
+    texto = texts.contacto.cierreVariosDias(String(parseFecha(desde).getDate()), formatDiaMes(hasta))
+  } else {
+    texto = texts.contacto.cierreVariosDias(formatDiaMes(desde), formatDiaMes(hasta))
+  }
+  return motivo ? `${texto} · ${motivo}` : texto
 }
 
 // Agrupa en el orden en que aparece cada categoría; los servicios ya vienen ordenados del backend
@@ -42,8 +69,9 @@ export function calcularTotales(servicios) {
   }
 }
 
-// Convierte estadoHoy del backend en la frase del hero
-export function textoEstadoHoy(estadoHoy) {
+// Convierte estadoHoy del backend en la frase del hero.
+// La próxima apertura se nombra por el día de la semana si es dentro de una semana y por la fecha si no.
+export function textoEstadoHoy(estadoHoy, hoy = new Date()) {
   if (!estadoHoy) return null
   const { estado, hora, dia } = estadoHoy
   switch (estado) {
@@ -53,8 +81,15 @@ export function textoEstadoHoy(estadoHoy) {
       return texts.estadoHoy.abreHoy(formatHora(hora))
     case 'CERRADO_HOY':
       if (!dia || !hora) return texts.estadoHoy.cerrado
-      return texts.estadoHoy.proximaApertura(texts.dias[dia], formatHora(hora))
+      return texts.estadoHoy.proximaApertura(nombreDia(estadoHoy, hoy), formatHora(hora))
     default:
       return null
   }
+}
+
+function nombreDia({ dia, fecha }, hoy) {
+  if (!fecha) return texts.dias[dia]
+  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+  const dias = Math.round((parseFecha(fecha) - inicioHoy) / MS_DIA)
+  return dias <= 6 ? texts.dias[dia] : formatDiaMes(fecha)
 }
