@@ -1,6 +1,5 @@
 package disnaking.Hueco.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -33,6 +32,12 @@ public class Cita {
     @JoinColumn(name="cliente_id")
     private Cliente cliente;
 
+    // Lo acordado al reservar: si luego cambia un servicio, la cita no cambia
+    @Column(nullable = false)
+    private int duracionMinutos;
+    @Column(nullable = false)
+    private BigDecimal precioTotal;
+
     public Cita(long id, ArrayList<Servicio>servicios, LocalDate fecha, LocalTime hora, EstadoCita estado, Cliente cliente){
         this.id = id;
         this.servicios = servicios;
@@ -42,8 +47,6 @@ public class Cita {
         this.cliente = cliente;
     }
 
-    // Jackson debe usar este constructor al leer el cuerpo de POST /create, no el de todos los campos
-    @JsonCreator
     public Cita() {}
 
     public void setId(long id) {
@@ -74,16 +77,23 @@ public class Cita {
         this.cliente = cliente;
     }
 
-    public int getDuracionTotalMinutos() {
-        return servicios.stream()
+    // Se calcula una sola vez, al guardar la cita por primera vez
+    @PrePersist
+    void calcularTotales() {
+        duracionMinutos = servicios.stream()
                 .mapToInt(Servicio::getDuracionMinutos)
                 .sum();
+        precioTotal = servicios.stream()
+                .map(Servicio::getPrecio)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public int getDuracionMinutos() {
+        return duracionMinutos;
     }
 
     public BigDecimal getPrecioTotal() {
-        return servicios.stream()
-                .map(Servicio::getPrecio)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return precioTotal;
     }
 
     public void setFecha(LocalDate fecha) {
