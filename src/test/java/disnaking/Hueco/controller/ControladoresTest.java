@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Sql("/controladores.sql")
+@Sql({"/limpiar.sql", "/controladores.sql"})
 class ControladoresTest {
 
     @Autowired
@@ -50,7 +50,7 @@ class ControladoresTest {
     void crearCitaDevuelveSuLocation() throws Exception {
         mockMvc.perform(post("/api/citas/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fecha\": \"2026-10-05\", \"hora\": \"09:00\", \"estado\": \"PENDIENTE\"}"))
+                        .content("{\"fecha\": \"2026-10-05\", \"hora\": \"09:00\", \"servicios\": [1]}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("/api/citas/\\d+")));
     }
