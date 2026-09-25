@@ -1,14 +1,10 @@
 import { useEffect } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import texts from '@/texts/es'
-import { calcularTotales, formatDuracion, formatPrecio } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-// Los totales son orientativos; al confirmar la reserva, el backend deberá recalcularlos
-export default function BarraReserva({ elegidos, to }) {
-  const visible = elegidos.length > 0
-  const { duracionMinutos, precio } = calcularTotales(elegidos)
-
+// Barra fija de cada paso: qué llevas elegido y Continuar
+export default function BarraReserva({ visible, titulo, detalle, to }) {
   // Layout deja sitio debajo del pie mientras la barra está a la vista
   const setBarraVisible = useOutletContext()?.setBarraVisible
   useEffect(() => {
@@ -29,10 +25,8 @@ export default function BarraReserva({ elegidos, to }) {
     >
       <div className="mx-auto flex h-20 max-w-5xl items-center justify-between gap-4 px-4">
         <p aria-live="polite" className="min-w-0 text-sm leading-snug">
-          <span className="block font-semibold">{texts.barra.servicios(elegidos.length)}</span>
-          <span className="opacity-90">
-            {formatDuracion(duracionMinutos)} · {formatPrecio(precio)}
-          </span>
+          <span className="block font-semibold">{titulo}</span>
+          <span className="opacity-90">{detalle}</span>
         </p>
         <Link
           to={to}
