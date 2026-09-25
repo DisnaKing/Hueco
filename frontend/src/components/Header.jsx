@@ -1,14 +1,15 @@
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { UserRound } from 'lucide-react'
 import business from '@/business.config'
 import texts from '@/texts/es'
 import { Button } from '@/components/ui/button'
 import MobileMenu from '@/components/MobileMenu'
 import { navLinks } from '@/components/navLinks'
-import { useScrollToSelector } from '@/hooks/useScrollToSelector'
 
 export default function Header() {
-  const scrollToSelector = useScrollToSelector()
+  const { pathname } = useLocation()
+  // En el flujo de reserva el botón solo confundiría
+  const enReserva = pathname.startsWith('/reservar')
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
@@ -30,9 +31,11 @@ export default function Header() {
           ))}
         </nav>
 
-        <Button onClick={scrollToSelector} className="h-10 rounded-full px-4 sm:px-5">
-          {texts.nav.reservar}
-        </Button>
+        {!enReserva && (
+          <Button asChild className="h-10 rounded-full px-4 sm:px-5">
+            <Link to="/reservar">{texts.nav.reservar}</Link>
+          </Button>
+        )}
 
         <Link
           to="/login"

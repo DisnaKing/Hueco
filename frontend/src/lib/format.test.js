@@ -5,6 +5,8 @@ import {
   formatDuracion,
   formatHora,
   formatPrecio,
+  formatDiaMes,
+  textoCierre,
   textoEstadoHoy,
 } from './format'
 
@@ -91,5 +93,47 @@ describe('textoEstadoHoy', () => {
   })
   it('sin datos', () => {
     expect(textoEstadoHoy(null)).toBeNull()
+  })
+})
+
+describe('textoEstadoHoy con fecha', () => {
+  // Lunes 21/09/2026
+  const hoy = new Date(2026, 8, 21, 10, 0)
+
+  it('dentro de una semana usa el día de la semana', () => {
+    const estado = { estado: 'CERRADO_HOY', hora: '09:00:00', dia: 'SUNDAY', fecha: '2026-09-27' }
+    expect(textoEstadoHoy(estado, hoy)).toBe('Cerrado · Abrimos el domingo a las 9:00')
+  })
+  it('el mismo día de la semana que viene usa la fecha, para no confundirlo con hoy', () => {
+    const estado = { estado: 'CERRADO_HOY', hora: '09:00:00', dia: 'MONDAY', fecha: '2026-09-28' }
+    expect(textoEstadoHoy(estado, hoy)).toBe('Cerrado · Abrimos el 28 de septiembre a las 9:00')
+  })
+  it('a más de una semana usa la fecha', () => {
+    const estado = { estado: 'CERRADO_HOY', hora: '09:00:00', dia: 'MONDAY', fecha: '2026-10-05' }
+    expect(textoEstadoHoy(estado, hoy)).toBe('Cerrado · Abrimos el 5 de octubre a las 9:00')
+  })
+})
+
+describe('formatDiaMes', () => {
+  it('no se desplaza un día por la zona horaria', () => {
+    expect(formatDiaMes('2026-12-24')).toBe('24 de diciembre')
+  })
+})
+
+describe('textoCierre', () => {
+  it('un solo día', () => {
+    expect(textoCierre({ desde: '2026-12-25', hasta: '2026-12-25', motivo: 'Navidad' })).toBe(
+      'Cerrado el 25 de diciembre · Navidad',
+    )
+  })
+  it('varios días del mismo mes', () => {
+    expect(textoCierre({ desde: '2026-12-24', hasta: '2026-12-26', motivo: 'Navidad' })).toBe(
+      'Cerrado del 24 al 26 de diciembre · Navidad',
+    )
+  })
+  it('entre dos meses y sin motivo', () => {
+    expect(textoCierre({ desde: '2026-12-30', hasta: '2027-01-02', motivo: null })).toBe(
+      'Cerrado del 30 de diciembre al 2 de enero',
+    )
   })
 })

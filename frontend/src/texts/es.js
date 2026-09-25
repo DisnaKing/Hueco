@@ -13,15 +13,14 @@ export default {
   },
   hero: {
     esloganPorDefecto: 'Reserva tu cita en un momento',
-    tituloServicios: 'Elige tus servicios',
-    ayudaServicios: 'Puedes elegir varios. Verás el tiempo y el precio total abajo.',
-    seleccionado: 'Elegido',
-    otros: 'Otros',
+    reservarCita: 'Reservar cita',
+    llamar: 'Llamar',
   },
   estadoHoy: {
     abierto: (hora) => `Abierto hoy hasta las ${hora}`,
     abreHoy: (hora) => `Hoy abrimos a las ${hora}`,
     cerrado: 'Cerrado',
+    // dia es "lunes" o, si falta más de una semana, "5 de enero"
     proximaApertura: (dia, hora) => `Cerrado · Abrimos el ${dia} a las ${hora}`,
   },
   dias: {
@@ -35,11 +34,15 @@ export default {
   },
   barra: {
     servicios: (n) => (n === 1 ? '1 servicio' : `${n} servicios`),
-    verHorarios: 'Ver horarios',
+    continuar: 'Continuar',
   },
   errores: {
     servicios: 'No podemos mostrar los servicios ahora mismo',
     llamar: 'Llamar para reservar',
+  },
+  carta: {
+    titulo: 'Servicios',
+    ayuda: 'Toca un servicio para empezar tu reserva con él.',
   },
   sobreNosotros: {
     titulo: 'Sobre nosotros',
@@ -57,6 +60,8 @@ export default {
     cerrado: 'Cerrado',
     hoy: 'hoy',
     redes: 'Síguenos',
+    cierreUnDia: (fecha) => `Cerrado el ${fecha}`,
+    cierreVariosDias: (desde, hasta) => `Cerrado del ${desde} al ${hasta}`,
     redNombres: {
       INSTAGRAM: 'Instagram',
       FACEBOOK: 'Facebook',
@@ -70,11 +75,17 @@ export default {
     derechos: 'Todos los derechos reservados.',
   },
   reservar: {
-    titulo: 'Tu reserva',
-    proximamente: 'Próximamente: elige fecha y hora',
-    sinServicios: 'No has elegido ningún servicio.',
+    pasos: ['Servicios', 'Fecha y hora', 'Tus datos y confirmar'],
+    paso: (n, total) => `Paso ${n} de ${total}`,
+    tituloServicios: 'Elige tus servicios',
+    ayudaServicios: 'Puedes elegir varios. Verás el tiempo y el precio total abajo.',
+    categorias: 'Categorías',
+    otros: 'Otros',
+    tituloHorario: 'Elige fecha y hora',
+    tusServicios: 'Tus servicios',
     total: 'Total',
-    elegirServicios: 'Elegir servicios',
+    proximamente: 'Próximamente: elige fecha y hora',
+    cambiarServicios: 'Cambiar servicios',
   },
   login: {
     titulo: 'Iniciar sesión',

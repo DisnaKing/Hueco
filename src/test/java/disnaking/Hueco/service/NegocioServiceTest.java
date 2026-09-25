@@ -1,6 +1,7 @@
 package disnaking.Hueco.service;
 
 import disnaking.Hueco.DTO.Negocio.estadoHoyDTO;
+import disnaking.Hueco.model.CierrePuntual;
 import disnaking.Hueco.model.EstadoApertura;
 import disnaking.Hueco.model.TramoHorario;
 import disnaking.Hueco.repository.NegocioRepository;
@@ -36,10 +37,19 @@ class NegocioServiceTest {
         return horario;
     }
 
+    private static NegocioService servicio(Instant instante) {
+        return new NegocioService(mock(NegocioRepository.class), Clock.fixed(instante, MADRID), 30);
+    }
+
+    private static estadoHoyDTO estadoConCierres(LocalDate fecha, int hora, List<CierrePuntual> cierres) {
+        Instant instante = fecha.atTime(hora, 0).atZone(MADRID).toInstant();
+        return servicio(instante).estadoHoy(horario(), cierres);
+    }
+
     private static estadoHoyDTO estadoA(LocalDate fecha, int hora, int minuto) {
         Instant instante = fecha.atTime(hora, minuto).atZone(MADRID).toInstant();
-        NegocioService service = new NegocioService(mock(NegocioRepository.class), Clock.fixed(instante, MADRID));
-        return service.estadoHoy(horario());
+        NegocioService service = servicio(instante);
+        return service.estadoHoy(horario(), List.of());
     }
 
     @Test
@@ -103,11 +113,50 @@ class NegocioServiceTest {
     }
 
     @Test
+    void hoyUsaLaZonaDelComercio() {
+        // Domingo 23:30 en UTC ya es lunes 1:30 en Madrid
+        Instant instante = DOMINGO.atTime(23, 30).atZone(ZoneOffset.UTC).toInstant();
+        NegocioService service = servicio(instante);
+
+        assertThat(service.hoy()).isEqualTo(DayOfWeek.MONDAY);
+    }
+
+    @Test
+    void hoyEsFestivo() {
+        // Lunes festivo a las 10:00, en mitad de un tramo
+        estadoHoyDTO estado = estadoConCierres(LUNES, 10, List.of(new CierrePuntual(LUNES, LUNES, "Festivo")));
+
+        assertThat(estado.getEstado()).isEqualTo(EstadoApertura.CERRADO_HOY);
+        assertThat(estado.getFecha()).isEqualTo(LUNES.plusDays(1));
+        assertThat(estado.getDia()).isEqualTo(DayOfWeek.TUESDAY);
+        assertThat(estado.getHora()).isEqualTo(LocalTime.of(9, 0));
+    }
+
+    @Test
+    void laProximaAperturaSeSaltaLosDiasDeCierre() {
+        // Lunes por la noche; martes y miércoles de vacaciones
+        estadoHoyDTO estado = estadoConCierres(LUNES, 21,
+                List.of(new CierrePuntual(LUNES.plusDays(1), LUNES.plusDays(2), "Vacaciones")));
+
+        assertThat(estado.getFecha()).isEqualTo(LUNES.plusDays(3));
+        assertThat(estado.getDia()).isEqualTo(DayOfWeek.THURSDAY);
+    }
+
+    @Test
+    void conUnCierreLargoLaProximaAperturaPuedeEstarAMasDeUnaSemana() {
+        estadoHoyDTO estado = estadoConCierres(LUNES, 10,
+                List.of(new CierrePuntual(LUNES, LUNES.plusDays(13), "Vacaciones")));
+
+        assertThat(estado.getFecha()).isEqualTo(LUNES.plusDays(14));
+        assertThat(estado.getDia()).isEqualTo(DayOfWeek.MONDAY);
+    }
+
+    @Test
     void sinHorarioNoHayProximaApertura() {
         Instant instante = LUNES.atTime(10, 0).atZone(MADRID).toInstant();
-        NegocioService service = new NegocioService(mock(NegocioRepository.class), Clock.fixed(instante, MADRID));
+        NegocioService service = servicio(instante);
 
-        estadoHoyDTO estado = service.estadoHoy(List.of());
+        estadoHoyDTO estado = service.estadoHoy(List.of(), List.of());
 
         assertThat(estado.getEstado()).isEqualTo(EstadoApertura.CERRADO_HOY);
         assertThat(estado.getDia()).isNull();

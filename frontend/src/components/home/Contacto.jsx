@@ -1,15 +1,13 @@
-import { Clock, ExternalLink, Mail, MapPin, Phone } from 'lucide-react'
+import { CalendarX, Clock, ExternalLink, Mail, MapPin, Phone } from 'lucide-react'
 import business from '@/business.config'
 import texts from '@/texts/es'
-import { formatHora } from '@/lib/format'
+import { formatHora, textoCierre } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import RedSocialLink from '@/components/home/RedSocialLink'
 
 const telHref = (telefono) => `tel:${telefono.replace(/\s/g, '')}`
-
-// Día de hoy en el formato del backend (MONDAY…), con la hora del navegador
-const hoy = () => new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()).toUpperCase()
 
 function Dato({ icono: Icono, titulo, children }) {
   return (
@@ -23,13 +21,13 @@ function Dato({ icono: Icono, titulo, children }) {
   )
 }
 
-function Horario({ horario }) {
-  const diaHoy = hoy()
+// hoy viene del backend, calculado con la zona horaria del comercio
+function Horario({ horario, hoy }) {
   return (
     <table className="w-full text-left">
       <tbody>
         {horario.map(({ dia, tramos }) => {
-          const esHoy = dia === diaHoy
+          const esHoy = dia === hoy
           return (
             <tr key={dia} className={cn(esHoy && 'bg-accent font-semibold')} aria-current={esHoy ? 'date' : undefined}>
               <th scope="row" className="rounded-l-lg py-1.5 pl-2 font-[inherit]">
@@ -76,6 +74,20 @@ export default function Contacto({ negocio }) {
           </div>
         )}
 
+        {data?.cierres?.length > 0 && (
+          <ul className="mt-6 flex flex-col gap-2">
+            {data.cierres.map((cierre) => (
+              <li
+                key={cierre.desde}
+                className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 font-medium"
+              >
+                <CalendarX className="size-5 shrink-0 text-primary" aria-hidden="true" />
+                {textoCierre(cierre)}
+              </li>
+            ))}
+          </ul>
+        )}
+
         {data && (
           <div className="mt-6 grid gap-10 md:grid-cols-2">
             <div className="flex flex-col gap-6">
@@ -112,14 +124,7 @@ export default function Contacto({ negocio }) {
                   <ul className="mt-2 flex flex-wrap gap-2">
                     {data.redesSociales.map((red) => (
                       <li key={red.url}>
-                        <a
-                          href={red.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-10 items-center rounded-full border border-line px-4 text-sm font-medium hover:border-primary hover:text-primary"
-                        >
-                          {texts.contacto.redNombres[red.tipo] ?? red.tipo}
-                        </a>
+                        <RedSocialLink red={red} />
                       </li>
                     ))}
                   </ul>
@@ -128,7 +133,7 @@ export default function Contacto({ negocio }) {
             </div>
 
             <Dato icono={Clock} titulo={texts.contacto.horario}>
-              <Horario horario={data.horario} />
+              <Horario horario={data.horario} hoy={data.hoy} />
             </Dato>
           </div>
         )}

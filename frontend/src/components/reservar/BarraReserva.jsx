@@ -1,19 +1,28 @@
-import { Link } from 'react-router'
+import { useEffect } from 'react'
+import { Link, useOutletContext } from 'react-router'
 import texts from '@/texts/es'
 import { calcularTotales, formatDuracion, formatPrecio } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-// Los totales son orientativos; en /reservar el backend deberá recalcularlos
-export default function BarraReserva({ elegidos }) {
+// Los totales son orientativos; al confirmar la reserva, el backend deberá recalcularlos
+export default function BarraReserva({ elegidos, to }) {
   const visible = elegidos.length > 0
   const { duracionMinutos, precio } = calcularTotales(elegidos)
-  const ids = elegidos.map((s) => s.id).join(',')
+
+  // Layout deja sitio debajo del pie mientras la barra está a la vista
+  const setBarraVisible = useOutletContext()?.setBarraVisible
+  useEffect(() => {
+    setBarraVisible?.(visible)
+  }, [visible, setBarraVisible])
+  useEffect(() => () => setBarraVisible?.(false), [setBarraVisible])
 
   return (
     <div
       inert={!visible}
+      data-testid="barra-reserva"
+      data-visible={visible}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-30 bg-primary pb-[env(safe-area-inset-bottom)] text-primary-contrast shadow-[0_-8px_24px_rgb(0_0_0/0.12)]',
+        'fixed inset-x-0 bottom-0 z-30 bg-primary pb-[env(safe-area-inset-bottom)] text-primary-contrast shadow-[0_-8px_24px] shadow-ink/10',
         'transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none',
         visible ? 'visible translate-y-0' : 'invisible translate-y-full',
       )}
@@ -26,10 +35,10 @@ export default function BarraReserva({ elegidos }) {
           </span>
         </p>
         <Link
-          to={`/reservar?servicios=${ids}`}
+          to={to}
           className="inline-flex h-11 shrink-0 items-center rounded-full bg-primary-contrast px-6 font-semibold text-primary"
         >
-          {texts.barra.verHorarios}
+          {texts.barra.continuar}
         </Link>
       </div>
     </div>
