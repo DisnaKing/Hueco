@@ -10,6 +10,8 @@ public record ReservaPublicaProperties(
         // Citas vivas (de hoy en adelante) que puede tener a la vez un mismo teléfono
         int maxCitasPorTelefono,
         // Reservas por hora desde una misma IP, contadas en memoria
-        int maxReservasPorIpHora
+        int maxReservasPorIpHora,
+        // Hasta cuántas horas antes de la cita se puede cancelar desde la web
+        int cancelacionHorasAntes
 ) {
 }
