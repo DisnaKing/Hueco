@@ -12,6 +12,7 @@ import disnaking.Hueco.repository.CitaRepository;
 import disnaking.Hueco.repository.ClienteRepository;
 import disnaking.Hueco.repository.NegocioRepository;
 import disnaking.Hueco.repository.ServicioRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,11 +47,13 @@ public class ReservaService {
     private final LimiteReservasPorIp limitePorIp;
     private final ReservaPublicaProperties reglas;
     private final Clock clock;
+    private final ApplicationEventPublisher eventos;
 
     public ReservaService(NegocioRepository negocioRepository, ServicioRepository servicioRepository,
                           CitaRepository citaRepository, ClienteRepository clienteRepository,
                           HuecoService huecoService, CalculadoraHuecos calculadora,
-                          LimiteReservasPorIp limitePorIp, ReservaPublicaProperties reglas, Clock clock) {
+                          LimiteReservasPorIp limitePorIp, ReservaPublicaProperties reglas, Clock clock,
+                          ApplicationEventPublisher eventos) {
         this.negocioRepository = negocioRepository;
         this.servicioRepository = servicioRepository;
         this.citaRepository = citaRepository;
@@ -60,6 +63,7 @@ public class ReservaService {
         this.limitePorIp = limitePorIp;
         this.reglas = reglas;
         this.clock = clock;
+        this.eventos = eventos;
     }
 
     // Devuelve el token de la cita nueva
@@ -136,6 +140,8 @@ public class ReservaService {
         citaRepository.save(cita);
 
         limitePorIp.registrar(ip);
+        // Los emails salen cuando se confirme la transacción (AvisosReserva)
+        eventos.publishEvent(new CitaReservada(cita.getId()));
         return cita.getToken();
     }
 

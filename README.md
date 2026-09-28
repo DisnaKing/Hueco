@@ -25,3 +25,17 @@ Status: Work in progress — core appointment domain modeled, currently expandin
   ```
   ./mvnw -q spring-boot:run -Dspring-boot.run.arguments=--hash=<clave>
   ```
+
+## Emails de las reservas
+
+Con cada cita nueva se manda la confirmación al cliente (si dejó su email, con el enlace a la cita y el `.ics`)
+y un aviso al comercio. Van por SMTP, así que vale cualquier proveedor (Brevo, Amazon SES, Gmail…).
+Sin configurar no se manda nada y la reserva funciona igual. Por comercio:
+
+- `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME` y `SPRING_MAIL_PASSWORD`, más
+  `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true` y `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`.
+- `HUECO_EMAIL_REMITENTE`: un remitente verificado en el proveedor, por ejemplo `Peluquería Ejemplo <citas@peluqueria.es>`.
+- `HUECO_EMAIL_NOMBRE_COMERCIO` y `HUECO_EMAIL_URL_WEB` (`https://peluqueria.es`, para los enlaces).
+- `HUECO_EMAIL_AVISO_COMERCIO`, opcional: a quién avisar; si falta, al email del negocio.
+
+Si un envío falla se reintenta (`hueco.email.intentos`, 3 por defecto) y al final queda en el log con nivel `ERROR`.
