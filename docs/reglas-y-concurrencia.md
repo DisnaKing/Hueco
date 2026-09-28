@@ -1,0 +1,233 @@
+# Reglas de reserva y concurrencia
+
+Este documento responde a tres preguntas:
+
+1. ¿Qué horas se ofrecen al cliente? ([Cálculo de horas libres](#cálculo-de-horas-libres))
+2. ¿Cómo se evita que dos citas cojan la misma hora? ([Dos reservas a la misma hora](#dos-reservas-a-la-misma-hora))
+3. ¿Cómo se evita que un mismo cliente acapare citas o reserve dos a la vez? ([Un mismo cliente](#un-mismo-cliente))
+
+## Parámetros
+
+Todos están en `application.properties` y se pueden cambiar sin tocar código (ver [configuración](configuracion.md)).
+
+| Propiedad | Por defecto | Qué controla |
+|---|---|---|
+| `hueco.capacidad` | `1` | Cuántas citas pueden coincidir en el mismo momento (sillones o profesionales) |
+| `hueco.paso-minutos` | `15` | Rejilla de horas de inicio: 9:00, 9:15, 9:30… |
+| `hueco.margen-minutos` | `5` | Tiempo libre tras cada cita (limpiar, cobrar) |
+| `hueco.dias-vista` | `30` | Cuántos días, contando hoy, se pueden reservar |
+| `hueco.antelacion-minutos` | `120` | No se ofrecen horas que empiecen antes de ahora + este margen |
+| `hueco.max-citas-por-telefono` | `3` | Citas futuras vivas que puede tener un mismo teléfono |
+| `hueco.max-reservas-por-ip-hora` | `10` | Reservas por IP en la última hora |
+| `hueco.cancelacion-horas-antes` | `24` | Hasta cuántas horas antes se puede cancelar desde la web |
+
+## Cálculo de horas libres
+
+Lo hace `CalculadoraHuecos`, una clase **sin acceso a base de datos**: recibe el horario, los cierres y las citas
+existentes y devuelve el resultado. `HuecoService` le pasa los datos y `ReservaService` la vuelve a usar al reservar,
+así que **las horas que se ofrecen y las que se aceptan salen del mismo cálculo**.
+
+### Algoritmo
+
+Para cada día desde hoy hasta `dias-vista` días:
+
+1. **¿Está abierto?** Si ese día de la semana no tiene tramos de horario, o cae dentro de un `CierrePuntual`
+   (vacaciones, festivo), el día es `CERRADO` y no tiene horas.
+2. **Citas que ocupan.** Se toman las citas de ese día en estado `PENDIENTE` o `CONFIRMADA`
+   (`EstadoCita.bloqueaHueco()`). Las `CANCELADA`, `COMPLETADA` y `NO_SHOW` no ocupan.
+   Cada una ocupa el intervalo `[hora, hora + duración + margen)`.
+3. **Horas candidatas.** Por cada tramo (por ejemplo 9:00–14:00 y 16:00–20:00), se prueban horas de inicio cada
+   `paso-minutos` desde la apertura. Una hora es candidata si:
+   - la cita **más el margen** termina como tarde al cierre del tramo (una cita no puede cruzar la pausa del mediodía);
+   - empieza como pronto en `ahora + antelacion-minutos`.
+4. **¿Cabe?** La cita nueva ocuparía `[inicio, inicio + duración + margen)`. Cabe si en ningún momento de ese
+   intervalo ya hay `capacidad` citas a la vez. No hace falta mirar minuto a minuto: el número de citas simultáneas
+   solo sube cuando empieza una cita, así que basta con mirar el inicio de la cita nueva y el inicio de cada cita
+   que empieza dentro de ella.
+5. **Estado del día.** Con alguna hora libre es `LIBRE`; si no queda ninguna es `COMPLETO`.
+
+La duración es la **suma** de los servicios elegidos. Un corte de 30 minutos y una barba de 20 buscan un hueco de 50.
+
+### Ejemplo
+
+Martes con tramo 9:00–14:00, `paso=15`, `margen=5`, `capacidad=1`. Ya hay una cita a las 10:00 de 30 minutos, que
+ocupa `[10:00, 10:35)`. Un cliente busca hueco para un servicio de 30 minutos, que necesita 35 contando el margen:
+
+| Inicio | Ocuparía | ¿Libre? | Por qué |
+|---|---|---|---|
+| 9:15 | 9:15–9:50 | Sí | No toca la cita de las 10:00 |
+| 9:30 | 9:30–10:05 | **No** | La cita de las 10:00 empieza dentro |
+| 9:45 | 9:45–10:20 | **No** | Igual |
+| 10:00 | 10:00–10:35 | **No** | Ya hay una cita a esa hora |
+| 10:30 | 10:30–11:05 | **No** | La cita de las 10:00 sigue ocupando hasta las 10:35 por el margen |
+| 10:45 | 10:45–11:20 | Sí | |
+| 13:15 | 13:15–13:50 | Sí | Última: termina antes de las 14:00 |
+| 13:30 | 13:30–14:05 | **No** | Se pasa del cierre del tramo |
+
+Con `capacidad=2`, las horas 9:30 a 10:30 sí estarían libres (habría como mucho 2 citas a la vez), pero no si
+ya hubiera dos citas solapadas en ese rato.
+
+### Tiempo y zona horaria
+
+"Hoy" y "ahora" se calculan con el `Clock` del comercio (`hueco.zona-horaria`, por defecto `Europe/Madrid`),
+no con el reloj del servidor ni del navegador. Un servidor en UTC o un cliente de viaje ven las mismas horas.
+
+## Dos reservas a la misma hora
+
+### El problema
+
+Entre que el cliente ve una hora libre y pulsa **Confirmar** pueden pasar minutos. En ese tiempo otra persona puede
+reservar esa misma hora. Y dos peticiones pueden llegar a la vez, con milisegundos de diferencia:
+
+```
+Petición A: ¿10:00 libre? → sí ─────────────→ guarda cita 10:00
+Petición B:     ¿10:00 libre? → sí ─────────────→ guarda cita 10:00   ← dos citas a la misma hora
+```
+
+Comprobar y luego guardar no basta si las dos peticiones comprueban antes de que ninguna haya guardado.
+
+### La solución: comprobar otra vez, dentro de un bloqueo
+
+`ReservaService.reservar` es `@Transactional` y, antes de comprobar nada de la hora, bloquea la fila del negocio:
+
+```java
+// NegocioRepository
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("select n from Negocio n where n.id = :id")
+Optional<Negocio> findByIdParaReservar(long id);
+```
+
+Esto genera un `SELECT ... FOR UPDATE`. Como cada instalación tiene **un solo negocio**, todas las reservas piden la
+misma fila, y la base de datos las pone en fila india: la segunda espera hasta que la primera hace commit o rollback.
+
+```mermaid
+sequenceDiagram
+    participant A as Petición A
+    participant B as Petición B
+    participant DB as Base de datos
+
+    A->>DB: SELECT negocio FOR UPDATE
+    DB-->>A: bloqueo concedido
+    B->>DB: SELECT negocio FOR UPDATE
+    Note over B,DB: B espera
+    A->>DB: leer citas: 10:00 libre
+    A->>DB: INSERT cita 10:00
+    A->>DB: COMMIT (libera el bloqueo)
+    DB-->>B: bloqueo concedido
+    B->>DB: leer citas: ya está la de A
+    B-->>B: 10:00 ocupada, 409 HORA_OCUPADA
+```
+
+Ya con el bloqueo, se vuelve a pedir **todo** el cálculo de huecos con las citas recién leídas
+(`calculadora.libre(...)`). Si la hora ya no sale, se lanza `ReservaRechazadaException(HORA_OCUPADA)` y el cliente
+recibe `409`. El frontend le dice "Esa hora se acaba de ocupar" y le deja elegir otra sin perder lo que ha escrito.
+
+Esta comprobación cubre también los demás motivos por los que una hora deja de valer entre el paso 2 y el 3:
+se ha pasado el plazo de antelación, el comercio ha añadido un cierre, o alguien manipula la petición a mano con una
+hora fuera de la rejilla o del horario.
+
+### Por qué así
+
+- **Por qué bloquear el negocio y no las citas.** El conflicto es sobre una cita que *todavía no existe*: no hay fila
+  que bloquear. Bloquear la tabla de citas entera no es portable, y un índice único sobre `(fecha, hora)` no sirve
+  porque dos citas pueden chocar sin empezar a la misma hora (10:00 de 30 min y 10:15) y porque con `capacidad > 1`
+  sí se permiten coincidencias.
+- **Por qué no bloqueo optimista.** El optimista detecta que *una fila* cambió, y aquí la fila nueva no la ve nadie.
+- **Coste.** Las reservas se procesan de una en una. Para un comercio pequeño (decenas de reservas al día, cada una
+  tarda milisegundos) no se nota. Consultar horas (`GET /api/huecos`) **no** bloquea: solo lo hace la reserva.
+- **Lo que no bloquea.** Validar campos, el campo trampa y el límite por IP van antes del bloqueo, así las peticiones
+  malas no hacen esperar a las buenas.
+
+### Qué no cubre
+
+Las citas que crea el comercio por los endpoints de gestión (`POST /api/citas/create`, `PATCH /api/citas/{id}`)
+**no** pasan por este control. Ver [limitaciones](limitaciones.md).
+
+### Prueba
+
+`ReservasEndpointTest.dosReservasSimultaneasALaMismaHora` lanza dos reservas a la vez en dos hilos, liberados a la
+vez con un `CountDownLatch`, para la misma hora y con teléfonos distintos. Comprueba que exactamente una recibe
+`HORA_OCUPADA` y que en la base de datos hay una sola cita. `unaHoraYaOcupadaDa409` cubre el caso secuencial.
+
+## Un mismo cliente
+
+### Cómo se identifica al cliente
+
+No hay cuentas. El cliente es su **teléfono normalizado** (`Telefonos.normalizar`): se quitan espacios, puntos,
+guiones y paréntesis, se quita el prefijo `+34` o `0034` si viene, se exige que queden 9 cifras que empiezan por
+6, 7, 8 o 9, y se guarda como `+34XXXXXXXXX`. Así, `600 111 222`, `600-111-222` y `+34 600111222` son el mismo cliente.
+En la tabla `cliente`, `telefono` es único.
+
+### Límite de citas por teléfono
+
+Dentro del bloqueo, antes de comprobar la hora:
+
+```java
+long vivas = citaRepository.countByClienteTelefonoAndFechaGreaterThanEqualAndEstadoIn(
+        telefono, hoy, List.of(PENDIENTE, CONFIRMADA));
+if (vivas >= reglas.maxCitasPorTelefono()) throw new ReservaRechazadaException(LIMITE_TELEFONO);
+```
+
+Un teléfono puede tener como mucho `max-citas-por-telefono` (3) citas **vivas** de hoy en adelante. Las canceladas o
+pasadas no cuentan: al cancelar una, se libera el cupo. La cuarta recibe `429 LIMITE_TELEFONO` y el frontend le
+propone llamar al comercio.
+
+Como la cuenta se hace **dentro del bloqueo**, dos peticiones simultáneas del mismo teléfono no pueden colarse a la
+vez por debajo del límite.
+
+Prueba: `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429`.
+
+### Dos citas del mismo cliente al mismo tiempo
+
+- **Con `capacidad=1` (el valor por defecto) es imposible**: no pueden coincidir dos citas de nadie, así que tampoco
+  dos de la misma persona. La segunda recibe `409 HORA_OCUPADA` como cualquier otra.
+- **Con `capacidad>1` hoy no se impide**: un mismo teléfono podría reservar, por ejemplo, 10:00 y 10:15 en dos
+  sillones distintos, siempre que no pase del límite de 3 citas. Está anotado en [limitaciones](limitaciones.md).
+- **Doble clic**: el botón **Confirmar cita** se deshabilita mientras se envía, así que no salen dos peticiones.
+  Aun así, si llegaran dos, el bloqueo haría que la segunda viera la hora ocupada (con `capacidad=1`).
+
+## Protección contra abusos
+
+| Medida | Dónde | Qué hace | Respuesta |
+|---|---|---|---|
+| Campo trampa `website` | `ReservaService`, lo primero | Un bot que rellena todos los campos lo rellena. Se responde como si hubiera ido bien y no se guarda nada | `201` con token falso |
+| Límite por IP | `LimiteReservasPorIp`, antes del bloqueo | Como mucho `max-reservas-por-ip-hora` (10) reservas **hechas** por IP en la última hora (ventana deslizante). Solo cuentan las que acaban guardadas | `429 LIMITE_IP` |
+| Límite por teléfono | `ReservaService`, dentro del bloqueo | Ver arriba | `429 LIMITE_TELEFONO` |
+| Validación en servidor | `ReservaService` | Nunca se fía del frontend: longitudes, formato de teléfono y email, servicios activos, fecha y hora válidas | `400` con errores por campo |
+| Precio y duración en servidor | `Cita` (`@PrePersist`) | Se calculan de los servicios en la base de datos, no de lo que mande el cliente | — |
+
+El límite por IP vive **en memoria** (se pierde al reiniciar y no se comparte entre varias instancias) y usa la IP
+de la conexión, sin mirar `X-Forwarded-For`. Detrás de un proxy inverso todos los clientes compartirían IP. Ver
+[limitaciones](limitaciones.md).
+
+## Cancelación
+
+`POST /api/reservas/{token}/cancelar`:
+
+| Situación | Resultado |
+|---|---|
+| Cita viva y faltan más de `cancelacion-horas-antes` (24 h) | Pasa a `CANCELADA`; la hora vuelve a estar libre al momento |
+| Cita viva y faltan 24 h o menos | `409 FUERA_DE_PLAZO`: hay que llamar al comercio |
+| Cita `COMPLETADA` o `NO_SHOW` | `409 NO_CANCELABLE` |
+| Cita ya `CANCELADA` | `200` sin cambios (pulsar dos veces no es un error) |
+| Token que no existe | `404` |
+
+El resumen de la cita lleva un campo `cancelable` para que el frontend solo enseñe el botón cuando tiene sentido.
+
+## Resumen de pruebas
+
+| Regla | Prueba |
+|---|---|
+| Servicio que no cabe antes de la pausa | `CalculadoraHuecosTest.elServicioNoCabeAntesDeLaPausaDelMediodia` |
+| Margen tras cada cita | `CalculadoraHuecosTest.dejaElMargenDespuesDeCadaCita` |
+| Capacidad 1 y 2 | `conCapacidad1UnaCitaOcupaLaHora`, `conCapacidad2CabenDosCitasALaVezPeroNoTres` |
+| Antelación mínima | `respetaLaAntelacionMinimaHoy`, `hoyCuandoLaAntelacionNoDejaNingunaHoraEstaCompleto` |
+| Cierres puntuales | `unDiaDeCierrePuntualEstaCerrado` |
+| Canceladas no ocupan | `lasCitasCanceladasNoBloquean`, `ReservasEndpointTest.cancelarDejaLibreLaHora` |
+| Hora ocupada | `ReservasEndpointTest.unaHoraYaOcupadaDa409` |
+| Reservas simultáneas | `ReservasEndpointTest.dosReservasSimultaneasALaMismaHora` |
+| Límite por teléfono | `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429` |
+| Mismo teléfono, mismo cliente | `ReservasEndpointTest.elMismoTelefonoEsElMismoCliente` |
+| Límite por IP | `LimiteReservasPorIpTest.permiteHastaElMaximoPorHoraYLuegoSeLibera` |
+| Campo trampa | `ReservasEndpointTest.elCampoTrampaRespondeBienSinGuardar` |
+| Plazo de cancelación | `conMenosHorasDeLasPermitidasHayQueLlamar`, `unaCitaCompletadaNoSeCancela` |
