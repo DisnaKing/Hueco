@@ -7,9 +7,20 @@ Todo se configura en `src/main/resources/application.properties` o, en producci�
 
 | Perfil | Cuándo | Qué hace |
 |---|---|---|
-| `dev` | Activo por defecto (`spring.profiles.active=dev`) | Carga la peluquería de ejemplo (`data-dev.sql`) y fija la clave de la agenda `hueco-dev` (`application-dev.properties`) |
+| `dev` | Activo por defecto (`spring.profiles.active=dev`) | Levanta Postgres con `compose.yaml`, carga la peluquería de ejemplo (`db/dev/R__datos_dev.sql`) y fija la clave de la agenda `hueco-dev` (`application-dev.properties`) |
 | `prod` | `SPRING_PROFILES_ACTIVE=prod` | No carga datos de ejemplo. Hay que dar la clave de la agenda |
-| `test` | Tests | Sube el límite por IP a 1000 para que los tests no choquen con él |
+| `test` | Tests | Postgres de Testcontainers compartido por todas las clases. Sube el límite por IP a 1000 para que los tests no choquen con él |
+
+## Base de datos
+
+PostgreSQL 17. Las tablas las crean las migraciones de Flyway al arrancar (ver [migraciones](migraciones.md)) y
+Hibernate solo comprueba que las entidades cuadran con ellas (`spring.jpa.hibernate.ddl-auto=validate`).
+
+| Dónde | Cómo se conecta |
+|---|---|
+| Desarrollo | `./mvnw spring-boot:run` levanta el servicio `postgres` de `compose.yaml` (base, usuario y clave `hueco`) y se conecta solo. Hace falta Docker. Los datos se guardan en el volumen `hueco-datos` y sobreviven a reinicios; para empezar de cero, `docker compose down -v` |
+| Tests | `jdbc:tc:postgresql:17-alpine:///hueco` en `application-test.properties`: Testcontainers crea un contenedor para toda la ejecución |
+| Producción | `SPRING_DATASOURCE_URL` (p. ej. `jdbc:postgresql://db:5432/hueco`), `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`. Sin ellas la aplicación **no arranca**: no hay base por defecto |
 
 ## Propiedades `hueco.*`
 
@@ -92,8 +103,8 @@ que `/api/...` llegue al backend (mismo dominio o proxy inverso) y que las rutas
 ## Antes de ir a producción
 
 - [ ] `SPRING_PROFILES_ACTIVE=prod`.
-- [ ] Configurar una base de datos persistente (hoy no hay: ver [limitaciones](limitaciones.md#base-de-datos-en-memoria)).
-- [ ] Cargar la fila del negocio (`id = 1`), su horario y sus servicios.
+- [ ] PostgreSQL y `SPRING_DATASOURCE_*` (ver [base de datos](#base-de-datos)). Las tablas se crean solas al arrancar.
+- [ ] Dar de alta el comercio con [`alta-comercio.sql`](alta-comercio.sql): fila del negocio (`id = 1`), horario y servicios.
 - [ ] `HUECO_AGENDA_CLAVE_HASH` con una clave nueva.
 - [ ] SMTP y `hueco.email.*` (remitente, nombre, URL pública).
 - [ ] HTTPS obligatorio: la clave de la agenda viaja en cada petición (HTTP Basic).

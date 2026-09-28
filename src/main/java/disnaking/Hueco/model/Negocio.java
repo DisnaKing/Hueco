@@ -12,7 +12,7 @@ public class Negocio {
     @Id
     private long id;
     private String eslogan;
-    @Lob
+    @Column(columnDefinition = "text")
     private String sobreNosotros;
     private String direccion;
     private String telefono;

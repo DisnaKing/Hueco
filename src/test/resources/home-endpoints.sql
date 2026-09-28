@@ -29,5 +29,5 @@ INSERT INTO negocio_testimonio (negocio_id, autor, texto, orden) VALUES
 
 -- Uno dentro del plazo de 30 días y otro fuera, que no debe salir
 INSERT INTO negocio_cierre (negocio_id, desde, hasta, motivo) VALUES
-(1, DATEADD('DAY', 60, CURRENT_DATE), DATEADD('DAY', 61, CURRENT_DATE), 'Lejano'),
-(1, DATEADD('DAY', 10, CURRENT_DATE), DATEADD('DAY', 12, CURRENT_DATE), 'Vacaciones');
+(1, CURRENT_DATE + 60, CURRENT_DATE + 61, 'Lejano'),
+(1, CURRENT_DATE + 10, CURRENT_DATE + 12, 'Vacaciones');

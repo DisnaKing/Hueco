@@ -1,0 +1,16 @@
+# Postgres de desarrollo. Spring Boot lo levanta solo al arrancar (spring-boot-docker-compose).
+# Para empezar con la base vacía: docker compose down -v
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: hueco
+      POSTGRES_USER: hueco
+      POSTGRES_PASSWORD: hueco
+    ports:
+      - "5432:5432"
+    volumes:
+      - hueco-datos:/var/lib/postgresql/data
+
+volumes:
+  hueco-datos:

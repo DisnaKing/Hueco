@@ -2,14 +2,6 @@
 
 Lo que hoy no está resuelto, ordenado por importancia.
 
-## Base de datos en memoria
-
-No hay datasource configurado, así que Spring Boot usa **H2 en memoria**. Al reiniciar el servidor se pierden todas
-las citas y clientes. En producción hay que configurar una base de datos persistente (PostgreSQL, MySQL o H2 en
-fichero) y, a ser posible, migraciones (Flyway o Liquibase) en lugar de que Hibernate cree las tablas.
-
-El bloqueo de reservas (`SELECT ... FOR UPDATE`) funciona igual en PostgreSQL y MySQL.
-
 ## Los endpoints de gestión no aplican las reglas
 
 `POST /api/citas/create` y `PATCH /api/citas/{id}` guardan lo que reciben: no comprueban horario, cierres, hueco

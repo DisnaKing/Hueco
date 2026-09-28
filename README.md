@@ -16,6 +16,8 @@ configuración y limitaciones conocidas.
 
 ## Desarrollo
 
+- Hace falta Docker: el backend usa PostgreSQL y lo levanta solo con `compose.yaml`. Los datos se guardan en un
+  volumen (`docker compose down -v` para empezar de cero). Los tests usan Testcontainers.
 - Backend: `./mvnw spring-boot:run` (perfil `dev` por defecto, con la peluquería de ejemplo).
 - Frontend: `cd frontend && npm install && npm run dev` (el proxy de Vite manda `/api` al 8080).
 
