@@ -12,7 +12,6 @@ Todos están en `application.properties` y se pueden cambiar sin tocar código (
 
 | Propiedad | Por defecto | Qué controla |
 |---|---|---|
-| `hueco.capacidad` | `1` | Cuántas citas pueden coincidir en el mismo momento (sillones o profesionales) |
 | `hueco.paso-minutos` | `15` | Rejilla de horas de inicio: 9:00, 9:15, 9:30… |
 | `hueco.margen-minutos` | `5` | Tiempo libre tras cada cita (limpiar, cobrar) |
 | `hueco.dias-vista` | `30` | Cuántos días, contando hoy, se pueden reservar |
@@ -40,17 +39,15 @@ Para cada día desde hoy hasta `dias-vista` días:
    `paso-minutos` desde la apertura. Una hora es candidata si:
    - la cita **más el margen** termina como tarde al cierre del tramo (una cita no puede cruzar la pausa del mediodía);
    - empieza como pronto en `ahora + antelacion-minutos`.
-4. **¿Cabe?** La cita nueva ocuparía `[inicio, inicio + duración + margen)`. Cabe si en ningún momento de ese
-   intervalo ya hay `capacidad` citas a la vez. No hace falta mirar minuto a minuto: el número de citas simultáneas
-   solo sube cuando empieza una cita, así que basta con mirar el inicio de la cita nueva y el inicio de cada cita
-   que empieza dentro de ella.
+4. **¿Cabe?** La cita nueva ocuparía `[inicio, inicio + duración + margen)`. Se atiende una cita a la vez, así que
+   cabe si ese intervalo no se cruza con el de ninguna cita que ocupa.
 5. **Estado del día.** Con alguna hora libre es `LIBRE`; si no queda ninguna es `COMPLETO`.
 
 La duración es la **suma** de los servicios elegidos. Un corte de 30 minutos y una barba de 20 buscan un hueco de 50.
 
 ### Ejemplo
 
-Martes con tramo 9:00–14:00, `paso=15`, `margen=5`, `capacidad=1`. Ya hay una cita a las 10:00 de 30 minutos, que
+Martes con tramo 9:00–14:00, `paso=15`, `margen=5`. Ya hay una cita a las 10:00 de 30 minutos, que
 ocupa `[10:00, 10:35)`. Un cliente busca hueco para un servicio de 30 minutos, que necesita 35 contando el margen:
 
 | Inicio | Ocuparía | ¿Libre? | Por qué |
@@ -64,8 +61,8 @@ ocupa `[10:00, 10:35)`. Un cliente busca hueco para un servicio de 30 minutos, q
 | 13:15 | 13:15–13:50 | Sí | Última: termina antes de las 14:00 |
 | 13:30 | 13:30–14:05 | **No** | Se pasa del cierre del tramo |
 
-Con `capacidad=2`, las horas 9:30 a 10:30 sí estarían libres (habría como mucho 2 citas a la vez), pero no si
-ya hubiera dos citas solapadas en ese rato.
+Una cita a las 10:15 bloquearía igual las 10:00 aunque no empiecen a la misma hora: lo que cuenta es si los
+intervalos se cruzan.
 
 ### Tiempo y zona horaria
 
@@ -130,8 +127,7 @@ hora fuera de la rejilla o del horario.
 
 - **Por qué bloquear el negocio y no las citas.** El conflicto es sobre una cita que *todavía no existe*: no hay fila
   que bloquear. Bloquear la tabla de citas entera no es portable, y un índice único sobre `(fecha, hora)` no sirve
-  porque dos citas pueden chocar sin empezar a la misma hora (10:00 de 30 min y 10:15) y porque con `capacidad > 1`
-  sí se permiten coincidencias.
+  porque dos citas pueden chocar sin empezar a la misma hora (10:00 de 30 min y 10:15).
 - **Por qué no bloqueo optimista.** El optimista detecta que *una fila* cambió, y aquí la fila nueva no la ve nadie.
 - **Coste.** Las reservas se procesan de una en una. Para un comercio pequeño (decenas de reservas al día, cada una
   tarda milisegundos) no se nota. Consultar horas (`GET /api/huecos`) **no** bloquea: solo lo hace la reserva.
@@ -141,7 +137,28 @@ hora fuera de la rejilla o del horario.
 ### Qué no cubre
 
 Las citas que crea el comercio por los endpoints de gestión (`POST /api/citas/create`, `PATCH /api/citas/{id}`)
-**no** pasan por este control. Ver [limitaciones](limitaciones.md).
+**no** pasan por este control: no miran horario, cierres ni margen. Ver [limitaciones](limitaciones.md). Lo que sí
+les alcanza es la última defensa, en la base de datos.
+
+### Última defensa: la base de datos
+
+La migración `V6__citas_sin_solape.sql` añade una restricción de exclusión a la tabla `cita`:
+
+```sql
+ALTER TABLE cita
+    ADD CONSTRAINT ex_cita_solape EXCLUDE USING gist (
+        tsrange(fecha + hora, fecha + hora + make_interval(mins => duracion_minutos)) WITH &&
+    ) WHERE (estado IN ('PENDIENTE', 'CONFIRMADA'));
+```
+
+PostgreSQL rechaza cualquier cita viva cuyo intervalo `[inicio, fin)` se cruce con el de otra cita viva, venga de
+donde venga: la reserva pública, la gestión o un `INSERT` a mano. Dos citas seguidas (9:00–9:30 y 9:30–10:00) sí
+caben, porque el rango no incluye el final. El **margen** no está en la restricción: es una regla de la reserva
+pública y sigue en `CalculadoraHuecos`.
+
+Si salta, `ErroresBaseDeDatos` convierte el error (SQLState `23P01`) en `409 { "motivo": "HORA_OCUPADA" }`, la
+misma respuesta que da la reserva. En la reserva pública no debería saltar nunca, porque el bloqueo ya lo impide;
+está para que ningún camino pueda dejar dos citas encima.
 
 ### Prueba
 
@@ -179,12 +196,11 @@ Prueba: `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429`.
 
 ### Dos citas del mismo cliente al mismo tiempo
 
-- **Con `capacidad=1` (el valor por defecto) es imposible**: no pueden coincidir dos citas de nadie, así que tampoco
-  dos de la misma persona. La segunda recibe `409 HORA_OCUPADA` como cualquier otra.
-- **Con `capacidad>1` hoy no se impide**: un mismo teléfono podría reservar, por ejemplo, 10:00 y 10:15 en dos
-  sillones distintos, siempre que no pase del límite de 3 citas. Está anotado en [limitaciones](limitaciones.md).
+- **Es imposible**: se atiende una cita a la vez, así que no pueden coincidir dos citas de nadie, y tampoco dos de
+  la misma persona. La segunda recibe `409 HORA_OCUPADA` como cualquier otra, y la base de datos lo impide aunque
+  fallara todo lo demás.
 - **Doble clic**: el botón **Confirmar cita** se deshabilita mientras se envía, así que no salen dos peticiones.
-  Aun así, si llegaran dos, el bloqueo haría que la segunda viera la hora ocupada (con `capacidad=1`).
+  Aun así, si llegaran dos, el bloqueo haría que la segunda viera la hora ocupada.
 
 ## Protección contra abusos
 
@@ -220,12 +236,13 @@ El resumen de la cita lleva un campo `cancelable` para que el frontend solo ense
 |---|---|
 | Servicio que no cabe antes de la pausa | `CalculadoraHuecosTest.elServicioNoCabeAntesDeLaPausaDelMediodia` |
 | Margen tras cada cita | `CalculadoraHuecosTest.dejaElMargenDespuesDeCadaCita` |
-| Capacidad 1 y 2 | `conCapacidad1UnaCitaOcupaLaHora`, `conCapacidad2CabenDosCitasALaVezPeroNoTres` |
+| Una cita a la vez | `unaCitaOcupaLaHora`, `unaCitaQueEmpiezaDespuesTambienBloqueaLasHorasQueLaPisarian` |
 | Antelación mínima | `respetaLaAntelacionMinimaHoy`, `hoyCuandoLaAntelacionNoDejaNingunaHoraEstaCompleto` |
 | Cierres puntuales | `unDiaDeCierrePuntualEstaCerrado` |
 | Canceladas no ocupan | `lasCitasCanceladasNoBloquean`, `ReservasEndpointTest.cancelarDejaLibreLaHora` |
 | Hora ocupada | `ReservasEndpointTest.unaHoraYaOcupadaDa409` |
 | Reservas simultáneas | `ReservasEndpointTest.dosReservasSimultaneasALaMismaHora` |
+| Sin solapes en la base de datos | `RestriccionesBaseDeDatosTest.laGestionNoPuedeCrearDosCitasSolapadas`, `moverUnaCitaEncimaDeOtraResponde409`, `seguidasSinMargenSiCaben`, `unaCitaCanceladaNoOcupa` |
 | Límite por teléfono | `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429` |
 | Mismo teléfono, mismo cliente | `ReservasEndpointTest.elMismoTelefonoEsElMismoCliente` |
 | Límite por IP | `LimiteReservasPorIpTest.permiteHastaElMaximoPorHoraYLuegoSeLibera` |

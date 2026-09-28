@@ -83,19 +83,9 @@ public class CalculadoraHuecos {
                 .toList();
     }
 
-    // Cabe si en ningún momento de [inicio, fin) se llega a la capacidad. Basta con mirar
-    // el inicio de la cita nueva y el de cada cita que empieza dentro de ella.
-    private boolean cabe(int inicio, int fin, List<int[]> ocupadas) {
-        List<Integer> momentos = new ArrayList<>();
-        momentos.add(inicio);
-        for (int[] o : ocupadas) {
-            if (o[0] > inicio && o[0] < fin) momentos.add(o[0]);
-        }
-        for (int momento : momentos) {
-            long simultaneas = ocupadas.stream().filter(o -> o[0] <= momento && momento < o[1]).count();
-            if (simultaneas >= reglas.capacidad()) return false;
-        }
-        return true;
+    // Se atiende una cita a la vez: cabe si [inicio, fin) no se cruza con ninguna ocupada
+    private static boolean cabe(int inicio, int fin, List<int[]> ocupadas) {
+        return ocupadas.stream().noneMatch(o -> o[0] < fin && inicio < o[1]);
     }
 
     private static List<TramoHorario> tramosDe(List<TramoHorario> horario, DayOfWeek dia) {

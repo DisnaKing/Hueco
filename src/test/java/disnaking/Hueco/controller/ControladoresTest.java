@@ -61,7 +61,7 @@ class ControladoresTest {
     void crearServicioDevuelveSuLocation() throws Exception {
         mockMvc.perform(post("/api/servicios/create").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+                        .content("{\"nombre\": \"Peinado\", \"duracionMinutos\": 30, \"precio\": 12}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("/api/servicios/\\d+")));
     }
@@ -70,7 +70,7 @@ class ControladoresTest {
     void crearClienteDevuelveSuLocation() throws Exception {
         mockMvc.perform(post("/api/clientes/create").with(COMERCIO)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Luis\"}"))
+                        .content("{\"name\": \"Luis\", \"telefono\": \"+34600000200\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("/api/clientes/\\d+")));
     }
