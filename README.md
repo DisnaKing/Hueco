@@ -8,6 +8,12 @@ Tech stack: Java, Spring Boot
 
 Status: Work in progress — core appointment domain modeled, currently expanding entity logic.
 
+## Documentación
+
+La documentación completa está en [`docs/`](docs/README.md): arquitectura, flujo de reserva, reglas de reserva y
+concurrencia (cómo se evita que dos citas cojan la misma hora), API, modelo de datos, agenda y emails del comercio,
+configuración y limitaciones conocidas.
+
 ## Desarrollo
 
 - Backend: `./mvnw spring-boot:run` (perfil `dev` por defecto, con la peluquería de ejemplo).
