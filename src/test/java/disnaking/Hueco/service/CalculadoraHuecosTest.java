@@ -21,8 +21,8 @@ class CalculadoraHuecosTest {
     private static final LocalDate DOMINGO = LocalDate.of(2026, 9, 20);
     private static final LocalDate LUNES = DOMINGO.plusDays(1);
 
-    // capacidad 1, paso 15, margen 5, 30 días vista, 2 h de antelación
-    private static final ReservaProperties REGLAS = new ReservaProperties(1, 15, 5, 30, 120);
+    // paso 15, margen 5, 30 días vista, 2 h de antelación
+    private static final ReservaProperties REGLAS = new ReservaProperties(15, 5, 30, 120);
 
     // Lunes a viernes 9:00-13:30 y 16:00-20:00; sábado 9:00-14:00; domingo cerrado
     private static List<TramoHorario> horario() {
@@ -74,27 +74,22 @@ class CalculadoraHuecosTest {
     }
 
     @Test
-    void conCapacidad1UnaCitaOcupaLaHora() {
+    void unaCitaOcupaLaHora() {
         List<String> horas = dia(dias(30, List.of(cita(LUNES, 10, 0, 30, EstadoCita.PENDIENTE))), LUNES).getHoras();
 
         assertThat(horas).doesNotContain("10:00");
     }
 
     @Test
-    void conCapacidad2CabenDosCitasALaVezPeroNoTres() {
-        ReservaProperties dosSillas = new ReservaProperties(2, 15, 5, 30, 120);
-        CalculadoraHuecos calc = calculadora(DOMINGO.atTime(12, 0), dosSillas);
+    void unaCitaQueEmpiezaDespuesTambienBloqueaLasHorasQueLaPisarian() {
+        // Cita a las 10:15: una de 30 min a las 10:00 acabaría (con margen) a las 10:35
+        List<String> horas = dia(dias(30, List.of(cita(LUNES, 10, 15, 30, EstadoCita.CONFIRMADA))), LUNES).getHoras();
 
-        List<String> conUna = dia(calc.dias(horario(), List.of(),
-                List.of(cita(LUNES, 10, 0, 30, EstadoCita.CONFIRMADA)), 30), LUNES).getHoras();
-        List<String> conDos = dia(calc.dias(horario(), List.of(),
-                List.of(cita(LUNES, 10, 0, 30, EstadoCita.CONFIRMADA),
-                        cita(LUNES, 10, 15, 30, EstadoCita.CONFIRMADA)), 30), LUNES).getHoras();
-
-        assertThat(conUna).contains("10:00");
-        // De 10:15 a 10:35 coinciden las dos: no cabe una tercera que empiece a las 10:00
-        assertThat(conDos).doesNotContain("10:00", "10:15");
-        assertThat(conDos).contains("09:30");
+        // 9:30 + 30 + 5 = 10:05, antes de las 10:15
+        assertThat(horas).contains("09:30");
+        assertThat(horas).doesNotContain("09:45", "10:00", "10:15", "10:30", "10:45");
+        // La de las 10:15 ocupa hasta las 10:50
+        assertThat(horas).contains("11:00");
     }
 
     @Test

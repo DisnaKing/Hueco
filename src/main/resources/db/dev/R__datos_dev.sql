@@ -59,16 +59,16 @@ INSERT INTO cliente (cliente_id, name, telefono, email, creado_en) VALUES
 -- Martes casi lleno: solo quedan huecos cortos hacia las 12:15.
 -- Miércoles: la mañana entera ocupada.
 -- Jueves: completo, para ver el día tachado en el calendario.
-INSERT INTO cita (id, fecha, hora, estado, cliente_id, duracion_minutos, precio_total, notas) VALUES
-(1, lunes + 1, '09:00', 'CONFIRMADA', 1, 120, 65.00, NULL),
-(2, lunes + 1, '11:15', 'CONFIRMADA', 2, 45, 25.00, 'Prefiere máquina del 2'),
-(3, lunes + 1, '16:00', 'PENDIENTE', 1, 60, 32.00, NULL),
-(4, lunes + 1, '17:15', 'CONFIRMADA', NULL, 90, 80.00, NULL),
-(5, lunes + 1, '19:00', 'CONFIRMADA', 2, 30, 15.00, 'Prefiere máquina del 2'),
-(6, lunes + 2, '09:00', 'CONFIRMADA', 1, 120, 65.00, NULL),
-(7, lunes + 2, '11:15', 'PENDIENTE', NULL, 90, 80.00, NULL),
-(8, lunes + 3, '09:00', 'CONFIRMADA', 2, 265, 150.00, 'Prefiere máquina del 2'),
-(9, lunes + 3, '16:00', 'CONFIRMADA', NULL, 235, 130.00, NULL);
+INSERT INTO cita (id, fecha, hora, estado, cliente_id, duracion_minutos, precio_total, notas, token) VALUES
+(1, lunes + 1, '09:00', 'CONFIRMADA', 1, 120, 65.00, NULL, gen_random_uuid()::text),
+(2, lunes + 1, '11:15', 'CONFIRMADA', 2, 45, 25.00, 'Prefiere máquina del 2', gen_random_uuid()::text),
+(3, lunes + 1, '16:00', 'PENDIENTE', 1, 60, 32.00, NULL, gen_random_uuid()::text),
+(4, lunes + 1, '17:15', 'CONFIRMADA', NULL, 90, 80.00, NULL, gen_random_uuid()::text),
+(5, lunes + 1, '19:00', 'CONFIRMADA', 2, 30, 15.00, 'Prefiere máquina del 2', gen_random_uuid()::text),
+(6, lunes + 2, '09:00', 'CONFIRMADA', 1, 120, 65.00, NULL, gen_random_uuid()::text),
+(7, lunes + 2, '11:15', 'PENDIENTE', NULL, 90, 80.00, NULL, gen_random_uuid()::text),
+(8, lunes + 3, '09:00', 'CONFIRMADA', 2, 265, 150.00, 'Prefiere máquina del 2', gen_random_uuid()::text),
+(9, lunes + 3, '16:00', 'CONFIRMADA', NULL, 235, 130.00, NULL, gen_random_uuid()::text);
 
 INSERT INTO cita_servicio (cita_id, servicio_id) VALUES
 (1, 5), (2, 1), (3, 4), (4, 8), (5, 2), (6, 5), (7, 8), (8, 5), (8, 8), (9, 5), (9, 4);

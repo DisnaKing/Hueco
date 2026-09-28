@@ -34,7 +34,6 @@ Hibernate solo comprueba que las entidades cuadran con ellas (`spring.jpa.hibern
 
 | Propiedad | Por defecto | |
 |---|---|---|
-| `hueco.capacidad` | `1` | Citas que se atienden a la vez |
 | `hueco.paso-minutos` | `15` | Cada cuántos minutos se ofrece una hora de inicio |
 | `hueco.margen-minutos` | `5` | Tiempo tras cada cita antes de la siguiente |
 | `hueco.dias-vista` | `30` | Días que se pueden reservar, contando hoy |
