@@ -44,6 +44,13 @@ export function toIso(fecha) {
   return `${fecha.getFullYear()}-${mes}-${dia}`
 }
 
+// ("2026-09-28", 7) → "2026-10-05"; en fecha local, así el cambio de hora no descuadra el día
+export function sumarDias(iso, dias) {
+  const fecha = parseFecha(iso)
+  fecha.setDate(fecha.getDate() + dias)
+  return toIso(fecha)
+}
+
 // "2026-10-02" → "viernes 2"
 export function formatDiaSemanaNumero(iso) {
   const fecha = parseFecha(iso)

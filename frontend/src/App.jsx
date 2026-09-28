@@ -5,6 +5,7 @@ import ServiciosPage from '@/pages/reservar/ServiciosPage'
 import HorarioPage from '@/pages/reservar/HorarioPage'
 import DatosPage from '@/pages/reservar/DatosPage'
 import LoginPage from '@/pages/LoginPage'
+import AgendaPage from '@/pages/AgendaPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 function App() {
@@ -18,6 +19,8 @@ function App() {
         <Route path="login" element={<LoginPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+      {/* Fuera del Layout: la agenda es del comercio y no lleva la navegación de la web pública */}
+      <Route path="agenda" element={<AgendaPage />} />
     </Routes>
   )
 }
