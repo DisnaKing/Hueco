@@ -9,6 +9,7 @@ import {
   formatDiaSemanaNumero,
   formatFechaCorta,
   formatFechaLarga,
+  sumarDias,
   toIso,
   textoCierre,
   textoEstadoHoy,
@@ -16,6 +17,15 @@ import {
 
 // Intl separa el número y el símbolo con un espacio duro
 const normalizar = (texto) => texto.replace(/ /g, ' ')
+
+describe('sumarDias', () => {
+  it('cambia de mes y de año, y pasa el cambio de hora sin perder el día', () => {
+    expect(sumarDias('2026-09-28', 7)).toBe('2026-10-05')
+    expect(sumarDias('2026-10-05', -7)).toBe('2026-09-28')
+    expect(sumarDias('2026-12-29', 7)).toBe('2027-01-05')
+    expect(sumarDias('2026-10-22', 7)).toBe('2026-10-29')
+  })
+})
 
 describe('formatDuracion', () => {
   it('muestra horas y minutos', () => {
