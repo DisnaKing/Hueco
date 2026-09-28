@@ -29,17 +29,29 @@ export const huecos = [
   { fecha: '2026-10-05', estado: 'LIBRE', horas: ['10:30'] },
 ]
 
-// fetch simulado: cada ruta de la API (sin la query) devuelve su JSON, o un 502 si está en fallos
-export function mockFetch({ fallos = [], respuestas: otras = {} } = {}) {
+const respuesta = (status, body) => ({
+  ok: status < 300,
+  status,
+  json: async () => body,
+  text: async () => (body === undefined ? '' : JSON.stringify(body)),
+})
+
+// fetch simulado: cada ruta de la API (sin la query) devuelve su JSON, o un 502 si está en fallos.
+// posts: { ruta: { status, body } } para las peticiones POST.
+export function mockFetch({ fallos = [], respuestas: otras = {}, posts = {} } = {}) {
   const respuestas = { '/api/servicios': servicios, '/api/negocio': negocio, '/api/huecos': huecos, ...otras }
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (path) => {
-      const ruta = path.split('?')[0]
-      if (fallos.includes(ruta)) return { ok: false, status: 502, json: async () => ({}) }
-      return { ok: true, status: 200, json: async () => respuestas[ruta] }
-    }),
-  )
+  const fetch = vi.fn(async (path, init) => {
+    const ruta = path.split('?')[0]
+    if (init?.method === 'POST') {
+      const r = posts[ruta] ?? { status: 500 }
+      return respuesta(r.status, r.body)
+    }
+    if (fallos.includes(ruta)) return respuesta(502, {})
+    if (!(ruta in respuestas)) return respuesta(404, {})
+    return respuesta(200, respuestas[ruta])
+  })
+  vi.stubGlobal('fetch', fetch)
+  return fetch
 }
 
 // APIs del navegador que jsdom no trae
