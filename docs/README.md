@@ -17,12 +17,15 @@ Cada instalación sirve a **un solo comercio**. En la base de datos, el negocio 
 | [Modelo de datos](modelo-datos.md) | Entidades, estados de una cita y qué se guarda de cada cliente |
 | [Comercio: agenda, emails y cancelación](comercio.md) | Agenda del comercio, emails de cada reserva y cancelación desde el enlace |
 | [Configuración y despliegue](configuracion.md) | Todas las propiedades `hueco.*`, perfiles, clave de la agenda y SMTP |
+| [Migraciones](migraciones.md) | Cómo se crea y evoluciona el esquema con Flyway, y reglas para escribir migraciones |
 | [Limitaciones conocidas](limitaciones.md) | Lo que todavía no está resuelto y conviene saber antes de ir a producción |
 
 ## Arranque rápido
 
+Hace falta Docker: el backend levanta su PostgreSQL con `compose.yaml`.
+
 ```bash
-# Backend (puerto 8080, perfil dev con la peluquería de ejemplo)
+# Backend (puerto 8080, perfil dev con la peluquería de ejemplo; arranca Postgres solo)
 ./mvnw spring-boot:run
 
 # Frontend (puerto 5173; el proxy de Vite manda /api al 8080)
@@ -37,7 +40,7 @@ npm run dev
 ## Pruebas
 
 ```bash
-./mvnw test                          # backend (JUnit + MockMvc, H2 en memoria)
+./mvnw test                          # backend (JUnit + MockMvc, Postgres con Testcontainers: hace falta Docker)
 cd frontend && npm test              # frontend (Vitest + Testing Library)
 cd frontend && npm run lint          # oxlint
 cd frontend && npm run build         # build de producción

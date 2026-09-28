@@ -61,9 +61,20 @@ class SeguridadTest {
     void sinClaveDeAgendaLaAplicacionNoArranca() {
         // Como SPRING_PROFILES_ACTIVE=prod en producción: sustituye a dev, que es el perfil por defecto
         assertThatThrownBy(() -> new SpringApplicationBuilder(Hueco.class)
-                .run("--spring.profiles.active=prod", "--server.port=0")
+                .run("--spring.profiles.active=prod", "--server.port=0",
+                        "--spring.datasource.url=jdbc:tc:postgresql:17-alpine:///hueco?TC_DAEMON=true")
                 .close())
                 .rootCause()
                 .hasMessageContaining("hueco.agenda.clave-hash");
+    }
+
+    @Test
+    void sinBaseDeDatosLaAplicacionNoArranca() {
+        // En producción no hay base por defecto: hay que dar SPRING_DATASOURCE_URL
+        assertThatThrownBy(() -> new SpringApplicationBuilder(Hueco.class)
+                .run("--spring.profiles.active=prod", "--server.port=0",
+                        "--hueco.agenda.clave-hash=$2a$10$30PwrryLiwhPiQtpsf74z.EwMzmYWp.De8HlduUIR5.hM.neQnRUW")
+                .close())
+                .hasStackTraceContaining("DataSourceBeanCreationException");
     }
 }

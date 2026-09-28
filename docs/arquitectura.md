@@ -5,7 +5,7 @@
 | Parte | Tecnología |
 |---|---|
 | Backend | Java 25, Spring Boot 4.1 (Web MVC, Data JPA, Security, Mail) |
-| Base de datos | H2 (ver [limitaciones](limitaciones.md#base-de-datos-en-memoria)) |
+| Base de datos | PostgreSQL 17, esquema versionado con Flyway (ver [migraciones](migraciones.md)) |
 | Frontend | React 19, React Router 8, Vite 8, Tailwind CSS 4, componentes shadcn/ui (Radix) |
 | Pruebas | JUnit 5 + MockMvc (backend), Vitest + Testing Library + jsdom (frontend) |
 | Calidad | oxlint en el frontend |
@@ -24,7 +24,7 @@ flowchart LR
         R[Repositories JPA]
         E[AvisosReserva<br/>async]
     end
-    DB[(H2)]
+    DB[(PostgreSQL)]
     SMTP[(Servidor SMTP)]
 
     W -- JSON sin credencial --> C

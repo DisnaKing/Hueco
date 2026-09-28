@@ -13,4 +13,4 @@ INSERT INTO negocio_horario (negocio_id, dia_semana, apertura, cierre) VALUES
 
 -- Mañana cerrado por un cierre puntual
 INSERT INTO negocio_cierre (negocio_id, desde, hasta, motivo) VALUES
-(1, DATEADD('DAY', 1, CURRENT_DATE), DATEADD('DAY', 1, CURRENT_DATE), 'Festivo');
+(1, CURRENT_DATE + 1, CURRENT_DATE + 1, 'Festivo');

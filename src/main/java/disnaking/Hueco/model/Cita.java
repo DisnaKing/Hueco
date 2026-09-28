@@ -14,7 +14,7 @@ import java.util.UUID;
 public class Cita {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     @ManyToMany

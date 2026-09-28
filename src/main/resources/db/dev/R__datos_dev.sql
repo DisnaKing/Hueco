@@ -1,4 +1,14 @@
--- Peluquería de ejemplo para desarrollo
+-- Peluquería de ejemplo para desarrollo (solo perfil dev).
+-- Migración repetible: Flyway la vuelve a ejecutar si cambia el fichero, pero solo carga
+-- datos con la base vacía. Para recargarla (y refrescar las fechas): docker compose down -v
+DO $$
+DECLARE
+    -- Lunes de dentro de dos semanas: las citas caen en martes, miércoles y jueves, lejos de las vacaciones
+    lunes date := CURRENT_DATE + (15 - EXTRACT(ISODOW FROM CURRENT_DATE)::int);
+BEGIN
+IF EXISTS (SELECT 1 FROM negocio) THEN
+    RETURN;
+END IF;
 
 INSERT INTO servicio (id, nombre, descripcion, duracion_minutos, precio, categoria, orden, activo) VALUES
 (1, 'Corte mujer', 'Lavado, corte y secado a tu estilo.', 45, 25.00, 'Corte', 2, TRUE),
@@ -9,9 +19,6 @@ INSERT INTO servicio (id, nombre, descripcion, duracion_minutos, precio, categor
 (6, 'Peinado de fiesta', 'Recogido o ondas para eventos.', 45, 30.00, 'Color', 6, FALSE),
 (7, 'Hidratación profunda', 'Mascarilla y masaje capilar para cabellos secos.', 30, 18.00, 'Tratamientos', 7, TRUE),
 (8, 'Alisado de keratina', 'Reduce el encrespado durante semanas.', 90, 80.00, 'Tratamientos', 8, TRUE);
-
--- Evita que los servicios creados desde la API choquen con los ids del seed
-ALTER SEQUENCE servicio_seq RESTART WITH 101;
 
 INSERT INTO negocio (id, eslogan, sobre_nosotros, direccion, telefono, email) VALUES
 (1,
@@ -39,35 +46,36 @@ INSERT INTO negocio_testimonio (negocio_id, autor, texto, orden) VALUES
 (1, 'Javier R.', 'Rápidos, puntuales y muy buen trato. Ya no voy a otro sitio.', 2),
 (1, 'Marta G.', 'Las mechas me duraron muchísimo. Repetiré seguro.', 3);
 
--- Vacaciones de 2 días la semana que viene, relativas a hoy para que el seed no caduque
+-- Vacaciones de 2 días la semana que viene, relativas a hoy
 INSERT INTO negocio_cierre (negocio_id, desde, hasta, motivo) VALUES
-(1, DATEADD('DAY', 7, CURRENT_DATE), DATEADD('DAY', 8, CURRENT_DATE), 'Vacaciones');
-
--- Citas para ver horas ocupadas en el calendario. Caen en el martes y el miércoles de dentro
--- de dos semanas (ISO_DAY_OF_WEEK: lunes = 1), lejos de las vacaciones y siempre en día laborable.
--- Martes casi lleno: solo quedan huecos cortos hacia las 12:15.
--- Miércoles: la mañana entera ocupada.
--- Jueves: completo, para ver el día tachado en el calendario.
-INSERT INTO cita (id, fecha, hora, estado, cliente_id, duracion_minutos, precio_total) VALUES
-(1, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '09:00', 'CONFIRMADA', NULL, 120, 65.00),
-(2, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '11:15', 'CONFIRMADA', NULL, 45, 25.00),
-(3, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '16:00', 'PENDIENTE', NULL, 60, 32.00),
-(4, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '17:15', 'CONFIRMADA', NULL, 90, 80.00),
-(5, DATEADD('DAY', 16 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '19:00', 'CONFIRMADA', NULL, 30, 15.00),
-(6, DATEADD('DAY', 17 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '09:00', 'CONFIRMADA', NULL, 120, 65.00),
-(7, DATEADD('DAY', 17 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '11:15', 'PENDIENTE', NULL, 90, 80.00),
-(8, DATEADD('DAY', 18 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '09:00', 'CONFIRMADA', NULL, 265, 150.00),
-(9, DATEADD('DAY', 18 - ISO_DAY_OF_WEEK(CURRENT_DATE), CURRENT_DATE), '16:00', 'CONFIRMADA', NULL, 235, 130.00);
-
-INSERT INTO cita_servicio (cita_id, servicio_id) VALUES
-(1, 5), (2, 1), (3, 4), (4, 8), (5, 2), (6, 5), (7, 8), (8, 5), (8, 8), (9, 5), (9, 4);
+(1, CURRENT_DATE + 7, CURRENT_DATE + 8, 'Vacaciones');
 
 -- Clientes de ejemplo para ver nombres y teléfonos en la agenda
 INSERT INTO cliente (cliente_id, name, telefono, email, creado_en) VALUES
 (1, 'Lucía Martín', '+34611000001', 'lucia@example.com', CURRENT_TIMESTAMP),
 (2, 'Javier Ruiz', '+34622000002', NULL, CURRENT_TIMESTAMP);
-UPDATE cita SET cliente_id = 1 WHERE id IN (1, 3, 6);
-UPDATE cita SET cliente_id = 2, notas = 'Prefiere máquina del 2' WHERE id IN (2, 5, 8);
 
-ALTER SEQUENCE cita_seq RESTART WITH 101;
-ALTER SEQUENCE cliente_seq RESTART WITH 101;
+-- Citas para ver horas ocupadas en el calendario.
+-- Martes casi lleno: solo quedan huecos cortos hacia las 12:15.
+-- Miércoles: la mañana entera ocupada.
+-- Jueves: completo, para ver el día tachado en el calendario.
+INSERT INTO cita (id, fecha, hora, estado, cliente_id, duracion_minutos, precio_total, notas) VALUES
+(1, lunes + 1, '09:00', 'CONFIRMADA', 1, 120, 65.00, NULL),
+(2, lunes + 1, '11:15', 'CONFIRMADA', 2, 45, 25.00, 'Prefiere máquina del 2'),
+(3, lunes + 1, '16:00', 'PENDIENTE', 1, 60, 32.00, NULL),
+(4, lunes + 1, '17:15', 'CONFIRMADA', NULL, 90, 80.00, NULL),
+(5, lunes + 1, '19:00', 'CONFIRMADA', 2, 30, 15.00, 'Prefiere máquina del 2'),
+(6, lunes + 2, '09:00', 'CONFIRMADA', 1, 120, 65.00, NULL),
+(7, lunes + 2, '11:15', 'PENDIENTE', NULL, 90, 80.00, NULL),
+(8, lunes + 3, '09:00', 'CONFIRMADA', 2, 265, 150.00, 'Prefiere máquina del 2'),
+(9, lunes + 3, '16:00', 'CONFIRMADA', NULL, 235, 130.00, NULL);
+
+INSERT INTO cita_servicio (cita_id, servicio_id) VALUES
+(1, 5), (2, 1), (3, 4), (4, 8), (5, 2), (6, 5), (7, 8), (8, 5), (8, 8), (9, 5), (9, 4);
+
+-- Lo que se cree desde la web o la API empieza después de los ids del ejemplo
+ALTER TABLE servicio ALTER COLUMN id RESTART WITH 101;
+ALTER TABLE cita ALTER COLUMN id RESTART WITH 101;
+ALTER TABLE cliente ALTER COLUMN cliente_id RESTART WITH 101;
+END
+$$;

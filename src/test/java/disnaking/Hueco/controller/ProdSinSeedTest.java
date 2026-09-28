@@ -1,9 +1,11 @@
 package disnaking.Hueco.controller;
 
+import disnaking.Hueco.PostgresPropio;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = "hueco.agenda.clave-hash=$2a$10$30PwrryLiwhPiQtpsf74z.EwMzmYWp.De8HlduUIR5.hM.neQnRUW")
 @AutoConfigureMockMvc
 @ActiveProfiles("prod")
+@Import(PostgresPropio.class)
 class ProdSinSeedTest {
 
     @Autowired
