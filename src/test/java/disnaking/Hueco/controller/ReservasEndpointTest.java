@@ -190,5 +190,53 @@ class ReservasEndpointTest {
     void unTokenQueNoExisteDa404() throws Exception {
         mockMvc.perform(get("/api/reservas/no-existe")).andExpect(status().isNotFound());
         mockMvc.perform(get("/api/reservas/no-existe/cita.ics")).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/reservas/no-existe/cancelar")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void cancelarDejaLibreLaHora() throws Exception {
+        String token = reservar("10:00", "600111222");
+        mockMvc.perform(get("/api/reservas/" + token)).andExpect(jsonPath("$.cancelable").value(true));
+
+        mockMvc.perform(post("/api/reservas/" + token + "/cancelar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CANCELADA"))
+                .andExpect(jsonPath("$.cancelable").value(false));
+        assertThat(jdbc.queryForObject("SELECT estado FROM cita", String.class)).isEqualTo("CANCELADA");
+
+        // Otra persona puede coger esa hora
+        mockMvc.perform(post("/api/reservas").contentType(MediaType.APPLICATION_JSON)
+                        .content(cuerpo("10:00", "611222333", "Luis")))
+                .andExpect(status().isCreated());
+
+        // Cancelar otra vez no es un error
+        mockMvc.perform(post("/api/reservas/" + token + "/cancelar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CANCELADA"));
+    }
+
+    // Hoy a las 23:59 siempre está a menos de 24 horas (o ya ha pasado)
+    @Test
+    void conMenosHorasDeLasPermitidasHayQueLlamar() throws Exception {
+        jdbc.update("""
+                INSERT INTO cita (id, fecha, hora, estado, duracion_minutos, precio_total, token)
+                VALUES (900, ?, '23:59', 'CONFIRMADA', 30, 15.00, 'pronto')""", LocalDate.now(MADRID));
+
+        mockMvc.perform(get("/api/reservas/pronto")).andExpect(jsonPath("$.cancelable").value(false));
+        mockMvc.perform(post("/api/reservas/pronto/cancelar"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.motivo").value("FUERA_DE_PLAZO"));
+        assertThat(jdbc.queryForObject("SELECT estado FROM cita", String.class)).isEqualTo("CONFIRMADA");
+    }
+
+    @Test
+    void unaCitaCompletadaNoSeCancela() throws Exception {
+        jdbc.update("""
+                INSERT INTO cita (id, fecha, hora, estado, duracion_minutos, precio_total, token)
+                VALUES (901, ?, '10:00', 'COMPLETADA', 30, 15.00, 'hecha')""", DIA);
+
+        mockMvc.perform(post("/api/reservas/hecha/cancelar"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.motivo").value("NO_CANCELABLE"));
     }
 }

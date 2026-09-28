@@ -36,7 +36,7 @@ class LimiteReservasPorIpTest {
     @Test
     void permiteHastaElMaximoPorHoraYLuegoSeLibera() {
         RelojManual reloj = new RelojManual();
-        LimiteReservasPorIp limite = new LimiteReservasPorIp(reloj, new ReservaPublicaProperties("+34", 3, 2));
+        LimiteReservasPorIp limite = new LimiteReservasPorIp(reloj, new ReservaPublicaProperties("+34", 3, 2, 24));
 
         limite.registrar("1.1.1.1");
         limite.registrar("1.1.1.1");

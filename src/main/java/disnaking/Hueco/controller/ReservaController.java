@@ -38,6 +38,12 @@ public class ReservaController {
         return reservaService.resumen(token);
     }
 
+    // 200 con el resumen ya cancelado, o 409 { motivo: FUERA_DE_PLAZO | NO_CANCELABLE }
+    @PostMapping("/{token}/cancelar")
+    public reservaResumenDTO cancelar(@PathVariable String token) {
+        return reservaService.cancelar(token);
+    }
+
     // ?nombre= es el nombre del comercio, que vive en el frontend (business.config.js)
     @GetMapping("/{token}/cita.ics")
     public ResponseEntity<String> ics(@PathVariable String token, @RequestParam(required = false) String nombre) {

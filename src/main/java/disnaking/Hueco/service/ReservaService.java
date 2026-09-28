@@ -141,11 +141,34 @@ public class ReservaService {
 
     @Transactional(readOnly = true)
     public reservaResumenDTO resumen(String token) {
+        return resumenDe(buscar(token));
+    }
+
+    // Cancelar desde el enlace de la cita. La hora queda libre porque una cita CANCELADA no ocupa hueco.
+    // Cancelar una cita ya cancelada no es un error: el cliente puede pulsar dos veces o volver a la página.
+    @Transactional
+    public reservaResumenDTO cancelar(String token) {
         Cita cita = buscar(token);
+        if (cita.getEstado() != EstadoCita.CANCELADA) {
+            if (!cita.getEstado().bloqueaHueco()) throw new ReservaRechazadaException(Motivo.NO_CANCELABLE);
+            if (!aTiempoDeCancelar(cita)) throw new ReservaRechazadaException(Motivo.FUERA_DE_PLAZO);
+            cita.setEstado(EstadoCita.CANCELADA);
+        }
+        return resumenDe(cita);
+    }
+
+    private reservaResumenDTO resumenDe(Cita cita) {
+        boolean cancelable = cita.getEstado().bloqueaHueco() && aTiempoDeCancelar(cita);
         return new reservaResumenDTO(cita.getFecha(), cita.getHora(), cita.getDuracionMinutos(), cita.getPrecioTotal(),
-                cita.getEstado(), cita.getServicios().stream()
+                cita.getEstado(), cancelable, cita.getServicios().stream()
                 .map(s -> new servicioReservadoDTO(s.getNombre(), s.getDuracionMinutos(), s.getPrecio()))
                 .toList());
+    }
+
+    // El reloj va en la zona del comercio, igual que la fecha y la hora de la cita
+    private boolean aTiempoDeCancelar(Cita cita) {
+        LocalDateTime limite = cita.getFecha().atTime(cita.getHora()).minusHours(reglas.cancelacionHorasAntes());
+        return LocalDateTime.now(clock).isBefore(limite);
     }
 
     @Transactional(readOnly = true)
