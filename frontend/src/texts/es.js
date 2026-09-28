@@ -73,6 +73,33 @@ export default {
   },
   footer: {
     derechos: 'Todos los derechos reservados.',
+    privacidad: 'Privacidad',
+  },
+  // Plantilla: cada comercio la adapta con su responsable, conservación y contacto (issue #34)
+  privacidad: {
+    titulo: 'Política de privacidad',
+    secciones: [
+      {
+        titulo: 'Quién trata tus datos',
+        texto: 'El responsable es el comercio que aparece en esta web. Puedes contactar con él en la dirección, el teléfono o el email de la sección Contacto.',
+      },
+      {
+        titulo: 'Para qué los usamos',
+        texto: 'Usamos tu nombre, tu teléfono y, si nos lo das, tu email solo para gestionar las citas que pides: reservarlas y avisarte si hay algún cambio. No los usamos para publicidad ni se los damos a nadie.',
+      },
+      {
+        titulo: 'Por qué podemos usarlos',
+        texto: 'Porque los necesitamos para darte el servicio que nos pides al reservar.',
+      },
+      {
+        titulo: 'Cuánto tiempo los guardamos',
+        texto: 'Mientras seas cliente y, después, el tiempo que obligue la ley.',
+      },
+      {
+        titulo: 'Tus derechos',
+        texto: 'Puedes pedir ver, corregir o borrar tus datos, o que dejemos de usarlos, contactando con el comercio. También puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).',
+      },
+    ],
   },
   reservar: {
     pasos: ['Servicios', 'Fecha y hora', 'Tus datos y confirmar'],
@@ -99,7 +126,36 @@ export default {
     tituloDatos: 'Tus datos',
     cuando: 'Cuándo',
     cambiarFecha: 'Cambiar fecha u hora',
-    proximamenteDatos: 'Próximamente: tus datos y confirmar',
+    campos: {
+      nombre: 'Nombre',
+      telefono: 'Teléfono',
+      email: 'Email',
+      notas: 'Notas para el comercio',
+      opcional: '(opcional)',
+    },
+    ayudaTelefono: 'Te llamaremos solo si hay algún cambio en tu cita.',
+    ayudaNotas: 'Por ejemplo: pelo muy largo, vengo con mi hija…',
+    errores: {
+      nombre: 'Escribe tu nombre',
+      telefono: 'Escribe un teléfono de 9 cifras',
+      email: 'Revisa el email',
+      notas: (max) => `Como mucho ${max} caracteres`,
+      cita: 'Revisa la fecha, la hora y los servicios de tu cita.',
+    },
+    privacidad: 'Usaremos tus datos solo para gestionar esta cita.',
+    verPrivacidad: 'Política de privacidad',
+    confirmar: 'Confirmar cita',
+    confirmando: 'Confirmando…',
+    horaOcupada: 'Esa hora se acaba de ocupar. Elige otra y no tendrás que volver a escribir tus datos.',
+    elegirOtraHora: 'Elegir otra hora',
+    limiteTelefono: 'Ya tienes el máximo de citas pendientes con este teléfono. Llama para reservar más.',
+    limiteIp: 'Se han hecho muchas reservas seguidas desde tu conexión. Inténtalo más tarde o llama.',
+    errorEnvio: 'No hemos podido confirmar la cita. Inténtalo de nuevo o llama.',
+    confirmada: '¡Cita confirmada!',
+    confirmadaTexto: 'Te esperamos. Guarda esta página o añade la cita a tu calendario.',
+    anadirCalendario: 'Añadir a mi calendario',
+    cambiarLlamando: 'Para cambiar o cancelar la cita, llama al',
+    cancelada: 'Esta cita está cancelada.',
     tusServicios: 'Tus servicios',
     total: 'Total',
   },

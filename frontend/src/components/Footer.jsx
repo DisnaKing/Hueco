@@ -17,6 +17,9 @@ export default function Footer() {
               {link.label}
             </Link>
           ))}
+          <Link to="/privacidad" className="hover:text-primary">
+            {texts.footer.privacidad}
+          </Link>
         </nav>
       </div>
     </footer>

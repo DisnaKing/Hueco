@@ -4,6 +4,8 @@ import HomePage from '@/pages/HomePage'
 import ServiciosPage from '@/pages/reservar/ServiciosPage'
 import HorarioPage from '@/pages/reservar/HorarioPage'
 import DatosPage from '@/pages/reservar/DatosPage'
+import ConfirmadaPage from '@/pages/reservar/ConfirmadaPage'
+import PrivacidadPage from '@/pages/PrivacidadPage'
 import LoginPage from '@/pages/LoginPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
@@ -15,6 +17,8 @@ function App() {
         <Route path="reservar" element={<ServiciosPage />} />
         <Route path="reservar/horario" element={<HorarioPage />} />
         <Route path="reservar/datos" element={<DatosPage />} />
+        <Route path="reservar/confirmada/:token" element={<ConfirmadaPage />} />
+        <Route path="privacidad" element={<PrivacidadPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
