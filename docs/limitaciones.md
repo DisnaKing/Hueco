@@ -4,16 +4,11 @@ Lo que hoy no está resuelto, ordenado por importancia.
 
 ## Los endpoints de gestión no aplican las reglas
 
-`POST /api/citas/create` y `PATCH /api/citas/{id}` guardan lo que reciben: no comprueban horario, cierres, hueco
-libre ni capacidad, y no usan el bloqueo. El comercio podría crear dos citas a la misma hora o fuera de horario.
-Hoy no tienen interfaz, pero si se construye un panel de gestión deberían pasar por `CalculadoraHuecos` y por el
-mismo bloqueo que `ReservaService`.
-
-## Mismo teléfono, citas solapadas con capacidad > 1
-
-Con `hueco.capacidad=1` es imposible que coincidan dos citas. Con capacidad 2 o más, un mismo teléfono puede
-reservar citas que se solapan (en sillones distintos), siempre dentro del límite de 3 citas vivas. Para impedirlo
-habría que, dentro del bloqueo, buscar citas vivas de ese teléfono cuyo intervalo se cruce con el de la nueva.
+`POST /api/citas/create` y `PATCH /api/citas/{id}` no comprueban horario, cierres ni margen, y no usan el bloqueo.
+El comercio podría crear una cita fuera de horario o pegada a otra sin margen. Lo que **no** puede es dejar dos citas
+vivas solapadas: la base de datos lo impide (`ex_cita_solape`) y responde `409 HORA_OCUPADA`. Hoy no tienen interfaz,
+pero si se construye un panel de gestión deberían pasar por `CalculadoraHuecos` y por el mismo bloqueo que
+`ReservaService`.
 
 ## Límite por IP
 
