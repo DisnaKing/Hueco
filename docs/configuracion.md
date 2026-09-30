@@ -8,7 +8,7 @@ Todo se configura en `src/main/resources/application.properties` o, en producci�
 | Perfil | Cuándo | Qué hace |
 |---|---|---|
 | `dev` | Activo por defecto (`spring.profiles.active=dev`) | Levanta Postgres con `compose.yaml`, carga la peluquería de ejemplo (`db/dev/R__datos_dev.sql`) y fija la clave de la agenda `hueco-dev` (`application-dev.properties`) |
-| `prod` | `SPRING_PROFILES_ACTIVE=prod` | No carga datos de ejemplo. Hay que dar la clave de la agenda |
+| `prod` | `SPRING_PROFILES_ACTIVE=prod` (lo pone `compose.prod.yaml`) | No carga datos de ejemplo. Hay que dar la clave de la agenda. Toma la IP del cliente de `X-Forwarded-For` cuando llega desde una red interna (`application-prod.properties`) |
 | `test` | Tests | Postgres de Testcontainers compartido por todas las clases. Sube el límite por IP a 1000 para que los tests no choquen con él |
 
 ## Base de datos
@@ -20,7 +20,7 @@ Hibernate solo comprueba que las entidades cuadran con ellas (`spring.jpa.hibern
 |---|---|
 | Desarrollo | `./mvnw spring-boot:run` levanta el servicio `postgres` de `compose.yaml` (base, usuario y clave `hueco`) y se conecta solo. Hace falta Docker. Los datos se guardan en el volumen `hueco-datos` y sobreviven a reinicios; para empezar de cero, `docker compose down -v` |
 | Tests | `jdbc:tc:postgresql:17-alpine:///hueco` en `application-test.properties`: Testcontainers crea un contenedor para toda la ejecución |
-| Producción | `SPRING_DATASOURCE_URL` (p. ej. `jdbc:postgresql://db:5432/hueco`), `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`. Sin ellas la aplicación **no arranca**: no hay base por defecto |
+| Producción | `SPRING_DATASOURCE_URL` (p. ej. `jdbc:postgresql://db:5432/hueco`), `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`. Sin ellas la aplicación **no arranca**: no hay base por defecto. `compose.prod.yaml` las pone solo, a partir de `POSTGRES_PASSWORD` en `.env` (ver [despliegue](despliegue.md)) |
 
 ## Propiedades `hueco.*`
 
@@ -97,15 +97,15 @@ cuando la API no responde), logo y fotos. Todos los textos están en `frontend/s
 
 Build de producción: `cd frontend && npm run build` deja la web estática en `frontend/dist`. Debe servirse de modo
 que `/api/...` llegue al backend (mismo dominio o proxy inverso) y que las rutas del frontend (`/reservar/...`,
-`/agenda`) devuelvan `index.html`.
+`/agenda`) devuelvan `index.html`. Con `compose.prod.yaml` lo hace Caddy (`deploy/Caddyfile`).
 
 ## Antes de ir a producción
 
-- [ ] `SPRING_PROFILES_ACTIVE=prod`.
-- [ ] PostgreSQL y `SPRING_DATASOURCE_*` (ver [base de datos](#base-de-datos)). Las tablas se crean solas al arrancar.
+El procedimiento completo está en [despliegue](despliegue.md). Lista rápida:
+
+- [ ] Dominio apuntando al servidor y puertos 80 y 443 abiertos (Caddy pone el HTTPS solo).
+- [ ] `.env` a partir de `.env.example`: `DOMINIO`, `POSTGRES_PASSWORD` y `HUECO_AGENDA_CLAVE_HASH` con una clave nueva.
 - [ ] Dar de alta el comercio con [`alta-comercio.sql`](alta-comercio.sql): fila del negocio (`id = 1`), horario y servicios.
-- [ ] `HUECO_AGENDA_CLAVE_HASH` con una clave nueva.
-- [ ] SMTP y `hueco.email.*` (remitente, nombre, URL pública).
-- [ ] HTTPS obligatorio: la clave de la agenda viaja en cada petición (HTTP Basic).
-- [ ] Si hay proxy inverso, revisar el límite por IP (ver [limitaciones](limitaciones.md)).
+- [ ] SMTP y `hueco.email.*` (remitente, nombre) en `.env`. La URL pública la pone `compose.prod.yaml` con `DOMINIO`.
+- [ ] Copiar las copias de `./backups` fuera del servidor con regularidad.
 - [ ] Texto de privacidad definitivo.

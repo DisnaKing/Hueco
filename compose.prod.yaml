@@ -1,0 +1,79 @@
+# Producción en un servidor propio: base de datos, backend, web con HTTPS y copias nocturnas.
+#   cp .env.example .env    # y rellenarlo
+#   docker compose -f compose.prod.yaml up -d --build
+# Ver docs/despliegue.md
+name: hueco
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hueco
+      POSTGRES_USER: hueco
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+    # Sin puerto publicado: solo la ven los demás servicios
+    volumes:
+      - datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hueco -d hueco"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # Clave de la agenda, SMTP y emails (ver .env.example)
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/hueco
+      SPRING_DATASOURCE_USERNAME: hueco
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      HUECO_EMAIL_URLWEB: https://${DOMINIO:?Falta DOMINIO en .env}
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Caddy.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMINIO: ${DOMINIO}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # Certificados: si se pierden, Caddy los vuelve a pedir (Let's Encrypt limita cuántos da por semana)
+      - caddy-datos:/data
+      - caddy-config:/config
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: hueco
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: hueco
+      TZ: ${TZ:-Europe/Madrid}
+      HORA_BACKUP: ${HORA_BACKUP:-3}
+      DIAS_BACKUP: 14
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - ./backups:/backups
+
+volumes:
+  datos:
+  caddy-datos:
+  caddy-config:
