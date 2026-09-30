@@ -97,8 +97,8 @@ sequenceDiagram
     alt más de N reservas en la última hora
         S-->>F: 429 { motivo: LIMITE_IP }
     end
-    S->>DB: SELECT negocio ... FOR UPDATE (bloqueo)
-    Note over S,DB: A partir de aquí, las reservas van de una en una
+    S->>DB: pg_advisory_xact_lock(teléfono)
+    Note over S,DB: Las reservas del mismo teléfono van de una en una; las de otros, en paralelo
     S->>DB: contar citas vivas del teléfono
     alt ya tiene el máximo
         S-->>F: 429 { motivo: LIMITE_TELEFONO }
@@ -110,9 +110,12 @@ sequenceDiagram
     end
     S->>DB: crear o actualizar cliente (por teléfono)
     S->>DB: guardar cita CONFIRMADA con token UUID
+    alt otra cita se ha guardado encima mientras tanto (ex_cita_solape)
+        S-->>F: 409 { motivo: HORA_OCUPADA }
+    end
     S->>S: registrar IP y publicar CitaReservada
     S-->>F: 201 { token }
-    Note over S,DB: COMMIT: se libera el bloqueo
+    Note over S,DB: COMMIT: se libera el bloqueo del teléfono
     S-)S: emails en segundo plano (tras el commit)
 ```
 

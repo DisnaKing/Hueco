@@ -83,19 +83,24 @@ Petición B:     ¿10:00 libre? → sí ─────────────�
 
 Comprobar y luego guardar no basta si las dos peticiones comprueban antes de que ninguna haya guardado.
 
-### La solución: comprobar otra vez, dentro de un bloqueo
+### La solución: la base de datos rechaza el solape
 
-`ReservaService.reservar` es `@Transactional` y, antes de comprobar nada de la hora, bloquea la fila del negocio:
+La migración `V7__margen_en_solape.sql` deja en la tabla `cita` una restricción de exclusión:
 
-```java
-// NegocioRepository
-@Lock(LockModeType.PESSIMISTIC_WRITE)
-@Query("select n from Negocio n where n.id = :id")
-Optional<Negocio> findByIdParaReservar(long id);
+```sql
+ALTER TABLE cita
+    ADD CONSTRAINT ex_cita_solape EXCLUDE USING gist (
+        tsrange(fecha + hora, fecha + hora + make_interval(mins => duracion_minutos + margen_minutos)) WITH &&
+    ) WHERE (estado IN ('PENDIENTE', 'CONFIRMADA'));
 ```
 
-Esto genera un `SELECT ... FOR UPDATE`. Como cada instalación tiene **un solo negocio**, todas las reservas piden la
-misma fila, y la base de datos las pone en fila india: la segunda espera hasta que la primera hace commit o rollback.
+Cada cita viva ocupa `[inicio, fin + margen)`, el mismo intervalo que usa `CalculadoraHuecos`, y PostgreSQL no deja
+guardar dos que se crucen, vengan de donde vengan: la reserva pública, la gestión o un `INSERT` a mano.
+`margen_minutos` es el margen con el que se reservó cada cita (`hueco.margen-minutos` en ese momento).
+
+Si dos inserciones que chocan van a la vez, la segunda **espera** a que la primera termine: si la primera confirma,
+la segunda falla con SQLState `23P01`; si la primera se deshace, la segunda entra. Es la misma garantía que un
+bloqueo, pero solo entre citas que se pisan: las reservas a horas distintas no se esperan.
 
 ```mermaid
 sequenceDiagram
@@ -103,68 +108,71 @@ sequenceDiagram
     participant B as Petición B
     participant DB as Base de datos
 
-    A->>DB: SELECT negocio FOR UPDATE
-    DB-->>A: bloqueo concedido
-    B->>DB: SELECT negocio FOR UPDATE
-    Note over B,DB: B espera
     A->>DB: leer citas: 10:00 libre
+    B->>DB: leer citas: 10:00 libre
     A->>DB: INSERT cita 10:00
-    A->>DB: COMMIT (libera el bloqueo)
-    DB-->>B: bloqueo concedido
-    B->>DB: leer citas: ya está la de A
-    B-->>B: 10:00 ocupada, 409 HORA_OCUPADA
+    B->>DB: INSERT cita 10:00
+    Note over B,DB: B espera a A (se solapan)
+    A->>DB: COMMIT
+    DB-->>B: 23P01 ex_cita_solape
+    B-->>B: 409 HORA_OCUPADA
 ```
 
-Ya con el bloqueo, se vuelve a pedir **todo** el cálculo de huecos con las citas recién leídas
-(`calculadora.libre(...)`). Si la hora ya no sale, se lanza `ReservaRechazadaException(HORA_OCUPADA)` y el cliente
-recibe `409`. El frontend le dice "Esa hora se acaba de ocupar" y le deja elegir otra sin perder lo que ha escrito.
+`ReservaService.reservar` sigue comprobando antes con `calculadora.libre(...)`, el mismo cálculo que ofrece las
+horas. Es lo que resuelve el caso normal, en el que la otra cita ya estaba guardada, y lo que cubre los demás motivos
+por los que una hora deja de valer: se ha pasado el plazo de antelación, el comercio ha añadido un cierre, o alguien
+manda a mano una hora fuera de la rejilla o del horario. La restricción cubre la carrera: la cita se guarda con
+`saveAndFlush` y, si choca, el servicio convierte el error en `ReservaRechazadaException(HORA_OCUPADA)`.
 
-Esta comprobación cubre también los demás motivos por los que una hora deja de valer entre el paso 2 y el 3:
-se ha pasado el plazo de antelación, el comercio ha añadido un cierre, o alguien manipula la petición a mano con una
-hora fuera de la rejilla o del horario.
+En los dos casos el cliente recibe `409`, y el frontend le dice "Esa hora se acaba de ocupar" y le deja elegir otra
+sin perder lo que ha escrito. Como la transacción se deshace entera, tampoco queda guardado el cliente, no cuenta
+para el límite por IP y no sale ningún email. En los endpoints de gestión, `ErroresBaseDeDatos` hace la misma
+conversión: `409 { "motivo": "HORA_OCUPADA" }`.
+
+### El único bloqueo: por teléfono
+
+La restricción no puede comprobar el límite de citas por teléfono ni el alta del cliente (ver
+[Un mismo cliente](#un-mismo-cliente)): los dos son "contar o buscar, y luego escribir". Para eso, antes de esa
+parte, `BloqueoTelefono` toma un bloqueo consultivo de PostgreSQL con la clave del teléfono:
+
+```sql
+SELECT pg_advisory_xact_lock(1, hashtext('+34600111222'));
+```
+
+Se suelta solo al terminar la transacción. Dos reservas del **mismo** teléfono van una detrás de otra; las de
+teléfonos distintos van en paralelo. El `1` separa estos bloqueos de otros que la aplicación pueda usar en el futuro.
+Si dos teléfonos distintos dieran el mismo `hashtext`, lo único que pasaría es que se esperarían entre sí.
 
 ### Por qué así
 
-- **Por qué bloquear el negocio y no las citas.** El conflicto es sobre una cita que *todavía no existe*: no hay fila
-  que bloquear. Bloquear la tabla de citas entera no es portable, y un índice único sobre `(fecha, hora)` no sirve
-  porque dos citas pueden chocar sin empezar a la misma hora (10:00 de 30 min y 10:15).
-- **Por qué no bloqueo optimista.** El optimista detecta que *una fila* cambió, y aquí la fila nueva no la ve nadie.
-- **Coste.** Las reservas se procesan de una en una. Para un comercio pequeño (decenas de reservas al día, cada una
-  tarda milisegundos) no se nota. Consultar horas (`GET /api/huecos`) **no** bloquea: solo lo hace la reserva.
-- **Lo que no bloquea.** Validar campos, el campo trampa y el límite por IP van antes del bloqueo, así las peticiones
-  malas no hacen esperar a las buenas.
+- **Antes se bloqueaba el negocio.** Hasta V7 cada reserva hacía `SELECT … FOR UPDATE` sobre la fila del negocio
+  (`id = 1`), así que todas las reservas iban en fila india, aunque fueran de días distintos. Funcionaba, pero
+  convertía esa fila en un cuello de botella.
+- **Por qué no un índice único sobre `(fecha, hora)`.** Dos citas pueden chocar sin empezar a la misma hora (una a las
+  10:00 de 30 minutos y otra a las 10:15). La restricción de exclusión compara intervalos, que es lo que hace falta.
+- **Por qué no bloqueo optimista.** El optimista detecta que *una fila* ha cambiado, y aquí el conflicto es con una
+  fila que todavía no existe.
+- **Lo que no bloquea.** Validar campos, el campo trampa y el límite por IP van antes del bloqueo por teléfono.
+  Consultar horas (`GET /api/huecos`) no bloquea nada.
 
 ### Qué no cubre
 
 Las citas que crea el comercio por los endpoints de gestión (`POST /api/citas/create`, `PATCH /api/citas/{id}`)
-**no** pasan por este control: no miran horario, cierres ni margen. Ver [limitaciones](limitaciones.md). Lo que sí
-les alcanza es la última defensa, en la base de datos.
-
-### Última defensa: la base de datos
-
-La migración `V6__citas_sin_solape.sql` añade una restricción de exclusión a la tabla `cita`:
-
-```sql
-ALTER TABLE cita
-    ADD CONSTRAINT ex_cita_solape EXCLUDE USING gist (
-        tsrange(fecha + hora, fecha + hora + make_interval(mins => duracion_minutos)) WITH &&
-    ) WHERE (estado IN ('PENDIENTE', 'CONFIRMADA'));
-```
-
-PostgreSQL rechaza cualquier cita viva cuyo intervalo `[inicio, fin)` se cruce con el de otra cita viva, venga de
-donde venga: la reserva pública, la gestión o un `INSERT` a mano. Dos citas seguidas (9:00–9:30 y 9:30–10:00) sí
-caben, porque el rango no incluye el final. El **margen** no está en la restricción: es una regla de la reserva
-pública y sigue en `CalculadoraHuecos`.
-
-Si salta, `ErroresBaseDeDatos` convierte el error (SQLState `23P01`) en `409 { "motivo": "HORA_OCUPADA" }`, la
-misma respuesta que da la reserva. En la reserva pública no debería saltar nunca, porque el bloqueo ya lo impide;
-está para que ningún camino pueda dejar dos citas encima.
+**no** miran horario, cierres ni límites, y se guardan con `margen_minutos = 0`. La base de datos les impide el solape
+estricto, pero no les exige margen: dos citas seguidas (9:00–9:30 y 9:30–10:00) creadas así caben. Ver
+[limitaciones](limitaciones.md).
 
 ### Prueba
 
-`ReservasEndpointTest.dosReservasSimultaneasALaMismaHora` lanza dos reservas a la vez en dos hilos, liberados a la
-vez con un `CountDownLatch`, para la misma hora y con teléfonos distintos. Comprueba que exactamente una recibe
-`HORA_OCUPADA` y que en la base de datos hay una sola cita. `unaHoraYaOcupadaDa409` cubre el caso secuencial.
+- `ReservasEndpointTest.dosReservasSimultaneasALaMismaHora` lanza dos reservas a la vez en dos hilos, liberados a la
+  vez con un `CountDownLatch`, para la misma hora y con teléfonos distintos. Comprueba que exactamente una recibe
+  `HORA_OCUPADA` y que en la base de datos hay una sola cita. `unaHoraYaOcupadaDa409` cubre el caso secuencial.
+- `ConcurrenciaReservasTest.siOtraReservaCogeElMargenMientrasTantoDa409` fuerza la carrera. Otra transacción tiene
+  insertada, sin confirmar, una cita a las 10:30, que la comprobación en Java no ve. La reserva de las 10:00 choca
+  con ella por el margen en cuanto la otra confirma, y recibe `HORA_OCUPADA`.
+- `ConcurrenciaReservasTest.reservarNoEsperaPorElNegocio` y `soloEsperanLasReservasDelMismoTelefono` comprueban que
+  ya no hay fila india: con el negocio bloqueado se reserva igual, y con el teléfono de un cliente bloqueado solo
+  espera ese cliente.
 
 ## Un mismo cliente
 
@@ -173,11 +181,12 @@ vez con un `CountDownLatch`, para la misma hora y con teléfonos distintos. Comp
 No hay cuentas. El cliente es su **teléfono normalizado** (`Telefonos.normalizar`): se quitan espacios, puntos,
 guiones y paréntesis, se quita el prefijo `+34` o `0034` si viene, se exige que queden 9 cifras que empiezan por
 6, 7, 8 o 9, y se guarda como `+34XXXXXXXXX`. Así, `600 111 222`, `600-111-222` y `+34 600111222` son el mismo cliente.
-En la tabla `cliente`, `telefono` es único.
+En la tabla `cliente`, `telefono` es único. La búsqueda y el alta van dentro del bloqueo por teléfono, así que dos
+reservas simultáneas de un teléfono nuevo crean un solo cliente.
 
 ### Límite de citas por teléfono
 
-Dentro del bloqueo, antes de comprobar la hora:
+Dentro del bloqueo por teléfono, antes de comprobar la hora:
 
 ```java
 long vivas = citaRepository.countByClienteTelefonoAndFechaGreaterThanEqualAndEstadoIn(
@@ -189,26 +198,29 @@ Un teléfono puede tener como mucho `max-citas-por-telefono` (3) citas **vivas**
 pasadas no cuentan: al cancelar una, se libera el cupo. La cuarta recibe `429 LIMITE_TELEFONO` y el frontend le
 propone llamar al comercio.
 
-Como la cuenta se hace **dentro del bloqueo**, dos peticiones simultáneas del mismo teléfono no pueden colarse a la
-vez por debajo del límite.
+Como la cuenta se hace **dentro del bloqueo por teléfono**, dos peticiones simultáneas del mismo teléfono no pueden
+colarse a la vez por debajo del límite.
 
-Prueba: `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429`.
+Pruebas: `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429`,
+`ConcurrenciaReservasTest.elMismoTelefonoEnElLimiteSoloConsigueUnaMas` y
+`unTelefonoNuevoReservandoDosVecesALaVezEsUnSoloCliente`.
 
 ### Dos citas del mismo cliente al mismo tiempo
 
-- **Es imposible**: se atiende una cita a la vez, así que no pueden coincidir dos citas de nadie, y tampoco dos de
-  la misma persona. La segunda recibe `409 HORA_OCUPADA` como cualquier otra, y la base de datos lo impide aunque
-  fallara todo lo demás.
+- **Es imposible**: el comercio tiene una sola agenda y atiende una cita a la vez, así que `ex_cita_solape` no deja
+  coincidir dos citas de nadie, tampoco dos de la misma persona. No hace falta una comprobación aparte por teléfono.
+  Si algún día hubiera varias agendas o profesionales, sí: la restricción pasaría a ser por agenda y habría que
+  comprobar el solape del teléfono dentro del bloqueo por teléfono.
 - **Doble clic**: el botón **Confirmar cita** se deshabilita mientras se envía, así que no salen dos peticiones.
-  Aun así, si llegaran dos, el bloqueo haría que la segunda viera la hora ocupada.
+  Aun así, si llegaran dos, el bloqueo por teléfono las pondría en fila y la segunda vería la hora ocupada.
 
 ## Protección contra abusos
 
 | Medida | Dónde | Qué hace | Respuesta |
 |---|---|---|---|
 | Campo trampa `website` | `ReservaService`, lo primero | Un bot que rellena todos los campos lo rellena. Se responde como si hubiera ido bien y no se guarda nada | `201` con token falso |
-| Límite por IP | `LimiteReservasPorIp`, antes del bloqueo | Como mucho `max-reservas-por-ip-hora` (10) reservas **hechas** por IP en la última hora (ventana deslizante). Solo cuentan las que acaban guardadas | `429 LIMITE_IP` |
-| Límite por teléfono | `ReservaService`, dentro del bloqueo | Ver arriba | `429 LIMITE_TELEFONO` |
+| Límite por IP | `LimiteReservasPorIp`, antes del bloqueo por teléfono | Como mucho `max-reservas-por-ip-hora` (10) reservas **hechas** por IP en la última hora (ventana deslizante). Solo cuentan las que acaban guardadas | `429 LIMITE_IP` |
+| Límite por teléfono | `ReservaService`, dentro del bloqueo por teléfono | Ver arriba | `429 LIMITE_TELEFONO` |
 | Validación en servidor | `ReservaService` | Nunca se fía del frontend: longitudes, formato de teléfono y email, servicios activos, fecha y hora válidas | `400` con errores por campo |
 | Precio y duración en servidor | `Cita` (`@PrePersist`) | Se calculan de los servicios en la base de datos, no de lo que mande el cliente | — |
 
@@ -241,10 +253,11 @@ El resumen de la cita lleva un campo `cancelable` para que el frontend solo ense
 | Cierres puntuales | `unDiaDeCierrePuntualEstaCerrado` |
 | Canceladas no ocupan | `lasCitasCanceladasNoBloquean`, `ReservasEndpointTest.cancelarDejaLibreLaHora` |
 | Hora ocupada | `ReservasEndpointTest.unaHoraYaOcupadaDa409` |
-| Reservas simultáneas | `ReservasEndpointTest.dosReservasSimultaneasALaMismaHora` |
-| Sin solapes en la base de datos | `RestriccionesBaseDeDatosTest.laGestionNoPuedeCrearDosCitasSolapadas`, `moverUnaCitaEncimaDeOtraResponde409`, `seguidasSinMargenSiCaben`, `unaCitaCanceladaNoOcupa` |
-| Límite por teléfono | `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429` |
-| Mismo teléfono, mismo cliente | `ReservasEndpointTest.elMismoTelefonoEsElMismoCliente` |
+| Reservas simultáneas | `ReservasEndpointTest.dosReservasSimultaneasALaMismaHora`, `ConcurrenciaReservasTest.siOtraReservaCogeElMargenMientrasTantoDa409` |
+| Sin fila india | `ConcurrenciaReservasTest.reservarNoEsperaPorElNegocio`, `soloEsperanLasReservasDelMismoTelefono` |
+| Sin solapes en la base de datos | `RestriccionesBaseDeDatosTest.laGestionNoPuedeCrearDosCitasSolapadas`, `moverUnaCitaEncimaDeOtraResponde409`, `seguidasSinMargenSiCaben`, `unaCitaCanceladaNoOcupa`, `ConcurrenciaReservasTest.laBaseDeDatosRechazaUnaCitaDentroDelMargenDeOtra` |
+| Límite por teléfono | `ReservasEndpointTest.laCuartaCitaDelMismoTelefonoDa429`, `ConcurrenciaReservasTest.elMismoTelefonoEnElLimiteSoloConsigueUnaMas` |
+| Mismo teléfono, mismo cliente | `ReservasEndpointTest.elMismoTelefonoEsElMismoCliente`, `ConcurrenciaReservasTest.unTelefonoNuevoReservandoDosVecesALaVezEsUnSoloCliente` |
 | Límite por IP | `LimiteReservasPorIpTest.permiteHastaElMaximoPorHoraYLuegoSeLibera` |
 | Campo trampa | `ReservasEndpointTest.elCampoTrampaRespondeBienSinGuardar` |
 | Plazo de cancelación | `conMenosHorasDeLasPermitidasHayQueLlamar`, `unaCitaCompletadaNoSeCancela` |
