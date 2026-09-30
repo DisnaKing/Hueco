@@ -14,9 +14,10 @@ Cada instalación sirve a **un solo comercio**. En la base de datos, el negocio 
 | [Flujo de reserva](flujo-reserva.md) | Paso a paso de una reserva, del navegador a la base de datos, con cada respuesta de error |
 | [Reglas y concurrencia](reglas-y-concurrencia.md) | Cálculo de horas libres, cómo se evita que dos citas cojan la misma hora y que un mismo cliente acapare citas |
 | [API](api.md) | Todos los endpoints, con sus cuerpos, respuestas y permisos |
-| [Modelo de datos](modelo-datos.md) | Entidades, estados de una cita y qué se guarda de cada cliente |
+| [Modelo de datos](modelo-datos.md) | Entidades, relaciones y tablas (diagrama ER), estados de una cita y qué se guarda de cada cliente |
 | [Comercio: agenda, emails y cancelación](comercio.md) | Agenda del comercio, emails de cada reserva y cancelación desde el enlace |
 | [Configuración y despliegue](configuracion.md) | Todas las propiedades `hueco.*`, perfiles, clave de la agenda y SMTP |
+| [Despliegue](despliegue.md) | Producción con `compose.prod.yaml`: Postgres, backend, Caddy con HTTPS, copias nocturnas y cómo restaurarlas |
 | [Migraciones](migraciones.md) | Cómo se crea y evoluciona el esquema con Flyway, y reglas para escribir migraciones |
 | [Limitaciones conocidas](limitaciones.md) | Lo que todavía no está resuelto y conviene saber antes de ir a producción |
 

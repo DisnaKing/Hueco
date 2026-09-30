@@ -13,10 +13,23 @@ pero si se construye un panel de gestión deberían pasar por `CalculadoraHuecos
 ## Límite por IP
 
 - **En memoria**: se reinicia con el servidor y no se comparte si hay varias instancias.
-- **Ignora proxies**: usa `request.getRemoteAddr()`. Detrás de un proxy inverso o balanceador, todas las peticiones
-  tienen la IP del proxy y el límite de 10 por hora sería para **todo el mundo junto**. Solución: configurar
-  `server.forward-headers-strategy=native` (o `framework`) y confiar solo en el proxy propio.
+- **Detrás de otro proxy**: con `compose.prod.yaml` la IP real llega desde Caddy (`server.forward-headers-strategy=native`
+  en el perfil `prod`, ver [despliegue](despliegue.md#ip-del-cliente)). Si se pone delante otro proxy o un CDN
+  (Cloudflare…), Caddy vería la IP de ese proxy y el límite de 10 por hora sería para **todo el mundo junto**. Habría
+  que declararlo en `trusted_proxies` del `Caddyfile`.
 - Una IP compartida (una oficina, un móvil con CGNAT) comparte límite.
+
+## Copias de seguridad en el mismo servidor
+
+El servicio `backup` deja las copias en `./backups`, en el mismo disco que la base de datos. Sacarlas del servidor
+es hoy un paso manual (ver [despliegue](despliegue.md#las-copias-tienen-que-salir-del-servidor)). Mejora pendiente:
+que el propio servicio las suba con `rclone` a un almacenamiento externo (S3, Backblaze B2, Google Drive…) después
+de cada copia.
+
+## Un solo servidor
+
+Todo corre en una máquina, con una instancia del backend. Actualizar deja unos segundos sin servicio mientras
+arranca la nueva versión, y si cae el servidor cae la web.
 
 ## El comercio no se entera de las cancelaciones
 
