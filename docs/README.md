@@ -46,3 +46,7 @@ cd frontend && npm test              # frontend (Vitest + Testing Library)
 cd frontend && npm run lint          # oxlint
 cd frontend && npm run build         # build de producción
 ```
+
+La CI (`.github/workflows/ci.yml`, GitHub Actions) ejecuta lo mismo en cada PR y en cada push a `main`:
+`./mvnw verify` en un job y `npm ci`, lint, tests y build del frontend en otro. Que un PR no se pueda fusionar
+sin pasarla se configura en GitHub, con la protección de la rama `main`.
