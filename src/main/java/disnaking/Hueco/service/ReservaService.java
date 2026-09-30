@@ -6,13 +6,16 @@ import disnaking.Hueco.DTO.Reserva.servicioReservadoDTO;
 import disnaking.Hueco.Exception.Reserva.ReservaInvalidaException;
 import disnaking.Hueco.Exception.Reserva.ReservaRechazadaException;
 import disnaking.Hueco.Exception.Reserva.ReservaRechazadaException.Motivo;
+import disnaking.Hueco.config.ReservaProperties;
 import disnaking.Hueco.config.ReservaPublicaProperties;
 import disnaking.Hueco.model.*;
 import disnaking.Hueco.repository.CitaRepository;
 import disnaking.Hueco.repository.ClienteRepository;
+import disnaking.Hueco.repository.EstadoSql;
 import disnaking.Hueco.repository.NegocioRepository;
 import disnaking.Hueco.repository.ServicioRepository;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,14 +48,17 @@ public class ReservaService {
     private final HuecoService huecoService;
     private final CalculadoraHuecos calculadora;
     private final LimiteReservasPorIp limitePorIp;
+    private final BloqueoTelefono bloqueoTelefono;
     private final ReservaPublicaProperties reglas;
+    private final ReservaProperties reglasHuecos;
     private final Clock clock;
     private final ApplicationEventPublisher eventos;
 
     public ReservaService(NegocioRepository negocioRepository, ServicioRepository servicioRepository,
                           CitaRepository citaRepository, ClienteRepository clienteRepository,
                           HuecoService huecoService, CalculadoraHuecos calculadora,
-                          LimiteReservasPorIp limitePorIp, ReservaPublicaProperties reglas, Clock clock,
+                          LimiteReservasPorIp limitePorIp, BloqueoTelefono bloqueoTelefono,
+                          ReservaPublicaProperties reglas, ReservaProperties reglasHuecos, Clock clock,
                           ApplicationEventPublisher eventos) {
         this.negocioRepository = negocioRepository;
         this.servicioRepository = servicioRepository;
@@ -61,7 +67,9 @@ public class ReservaService {
         this.huecoService = huecoService;
         this.calculadora = calculadora;
         this.limitePorIp = limitePorIp;
+        this.bloqueoTelefono = bloqueoTelefono;
         this.reglas = reglas;
+        this.reglasHuecos = reglasHuecos;
         this.clock = clock;
         this.eventos = eventos;
     }
@@ -104,8 +112,10 @@ public class ReservaService {
 
         if (!limitePorIp.permitido(ip)) throw new ReservaRechazadaException(Motivo.LIMITE_IP);
 
-        // A partir de aquí, una reserva cada vez: la segunda de dos simultáneas espera y ve la hora ocupada
-        Negocio negocio = negocioRepository.findByIdParaReservar(NEGOCIO_ID).orElseThrow(() ->
+        // Las reservas del mismo teléfono, una cada vez (límite de citas y alta del cliente). Las de teléfonos
+        // distintos van en paralelo: si dos cogen la misma hora, ex_cita_solape rechaza la segunda al insertar.
+        bloqueoTelefono.bloquear(telefono.get());
+        Negocio negocio = negocioRepository.findById(NEGOCIO_ID).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Negocio no encontrado"));
 
         long vivas = citaRepository.countByClienteTelefonoAndFechaGreaterThanEqualAndEstadoIn(
@@ -137,7 +147,14 @@ public class ReservaService {
         cita.setEstado(EstadoCita.CONFIRMADA);
         cita.setCliente(cliente);
         cita.setNotas(notas);
-        citaRepository.save(cita);
+        cita.setMargenMinutos(reglasHuecos.margenMinutos());
+        try {
+            citaRepository.saveAndFlush(cita);
+        } catch (DataIntegrityViolationException e) {
+            // Otra reserva simultánea cogió la hora (o su margen) entre la comprobación y el insert
+            if (EstadoSql.esSolape(e)) throw new ReservaRechazadaException(Motivo.HORA_OCUPADA);
+            throw e;
+        }
 
         limitePorIp.registrar(ip);
         // Los emails salen cuando se confirme la transacción (AvisosReserva)
