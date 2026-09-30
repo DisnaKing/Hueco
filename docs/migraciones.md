@@ -16,7 +16,8 @@ entidades cuadran con el esquema. Si una entidad cambia sin su migración, la ap
 | `db/migration/V3__checks.sql` | `CHECK` de dominio: duraciones mayores que 0, precios no negativos, apertura antes que cierre en el horario y `desde <= hasta` en los cierres |
 | `db/migration/V4__on_delete.sql` | Qué pasa al borrar: una cita se lleva sus `cita_servicio`; un servicio con citas o un cliente con citas no se pueden borrar; las colecciones del negocio se borran con él. Clave primaria `pk_cita_servicio` |
 | `db/migration/V5__not_null.sql` | `NOT NULL` en las columnas que el dominio siempre rellena. Antes rellena el `token` de las citas que no lo tuvieran |
-| `db/migration/V6__citas_sin_solape.sql` | Restricción de exclusión `ex_cita_solape`: dos citas vivas no pueden solaparse (ver [reglas](reglas-y-concurrencia.md#última-defensa-la-base-de-datos)) |
+| `db/migration/V6__citas_sin_solape.sql` | Restricción de exclusión `ex_cita_solape`: dos citas vivas no pueden solaparse (ver [reglas](reglas-y-concurrencia.md#la-solución-la-base-de-datos-rechaza-el-solape)) |
+| `db/migration/V7__margen_en_solape.sql` | Columna `margen_minutos` en `cita` (el margen con el que se reservó, 0 en las que ya había) y `ex_cita_solape` rehecha para incluirlo: una cita viva ocupa `[inicio, fin + margen)`. Sustituye al bloqueo del negocio en la reserva |
 | `db/dev/R__datos_dev.sql` | Solo perfil `dev`: la peluquería de ejemplo. Es repetible (`R__`): Flyway la ejecuta después de las versionadas y otra vez si cambia el fichero, pero solo carga datos si no hay negocio |
 
 `db/dev` solo está en `spring.flyway.locations` del perfil `dev` (`application-dev.properties`). En producción y en

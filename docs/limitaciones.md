@@ -4,11 +4,19 @@ Lo que hoy no está resuelto, ordenado por importancia.
 
 ## Los endpoints de gestión no aplican las reglas
 
-`POST /api/citas/create` y `PATCH /api/citas/{id}` no comprueban horario, cierres ni margen, y no usan el bloqueo.
-El comercio podría crear una cita fuera de horario o pegada a otra sin margen. Lo que **no** puede es dejar dos citas
-vivas solapadas: la base de datos lo impide (`ex_cita_solape`) y responde `409 HORA_OCUPADA`. Hoy no tienen interfaz,
-pero si se construye un panel de gestión deberían pasar por `CalculadoraHuecos` y por el mismo bloqueo que
-`ReservaService`.
+`POST /api/citas/create` y `PATCH /api/citas/{id}` no comprueban horario, cierres, margen ni límites, y no usan el
+bloqueo por teléfono. Sus citas se guardan con `margen_minutos = 0`, así que el comercio podría crear una cita fuera
+de horario o pegada a otra sin margen. Lo que **no** puede es dejar dos citas vivas solapadas: la base de datos lo
+impide (`ex_cita_solape`) y responde `409 HORA_OCUPADA`. Hoy no tienen interfaz, pero si se construye un panel de
+gestión deberían pasar por `CalculadoraHuecos` y guardar el margen, como `ReservaService`.
+
+## Cambiar el margen no afecta a las citas ya guardadas
+
+Cada cita guarda en `margen_minutos` el margen con el que se reservó, y `ex_cita_solape` usa ese valor. Si se cambia
+`hueco.margen-minutos`, `CalculadoraHuecos` aplica el nuevo a todas las citas al ofrecer horas, pero la base de datos
+sigue aplicando el antiguo a las ya guardadas. Al **subirlo** no pasa nada: la comprobación en Java es más estricta.
+Al **bajarlo**, la base de datos podría rechazar una hora que la web ofrece pegada a una cita antigua; el cliente
+recibiría `409 HORA_OCUPADA`. Si hiciera falta, se puede actualizar a mano el margen de las citas futuras.
 
 ## Límite por IP
 

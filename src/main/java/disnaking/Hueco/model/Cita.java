@@ -38,6 +38,9 @@ public class Cita {
     private int duracionMinutos;
     @Column(nullable = false)
     private BigDecimal precioTotal;
+    // Margen tras la cita con el que se reservó; forma parte del rango de ex_cita_solape (V7)
+    @Column(nullable = false)
+    private int margenMinutos;
 
     @Column(length = 300)
     private String notas;
@@ -103,6 +106,14 @@ public class Cita {
 
     public BigDecimal getPrecioTotal() {
         return precioTotal;
+    }
+
+    public int getMargenMinutos() {
+        return margenMinutos;
+    }
+
+    public void setMargenMinutos(int margenMinutos) {
+        this.margenMinutos = margenMinutos;
     }
 
     public void setFecha(LocalDate fecha) {

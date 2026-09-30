@@ -138,8 +138,8 @@ motivo del cierre, o `null` si simplemente no se trabaja. `cliente` es `null` en
 ### Gestión (sin interfaz todavía)
 
 Endpoints heredados de la primera versión. No tienen pantalla en el frontend y **no aplican las reglas de reserva**
-(ni horario, ni margen, ni límites). La base de datos sí impide que dos citas vivas se solapen: crear o mover una
-cita encima de otra responde `409 { "motivo": "HORA_OCUPADA" }`.
+(ni horario, ni margen, ni límites). Sus citas se guardan sin margen. La base de datos sí impide que dos citas vivas
+se solapen: crear o mover una cita encima de otra responde `409 { "motivo": "HORA_OCUPADA" }`.
 
 | Método y ruta | Qué hace |
 |---|---|
