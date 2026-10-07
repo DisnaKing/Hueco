@@ -9,6 +9,7 @@ import { textoTotales } from '@/lib/format'
 import { parseIds, serviciosElegidos } from '@/lib/seleccion'
 import { borrarDatosGuardados, guardarDatos, leerDatosGuardados, MAX_EMAIL, MAX_NOMBRE, MAX_NOTAS, validarDatos } from '@/lib/datosReserva'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import PasoIndicador from '@/components/reservar/PasoIndicador'
 import ErrorServicios from '@/components/reservar/ErrorServicios'
@@ -178,51 +179,84 @@ export default function DatosPage() {
             />
           </div>
 
-          <form noValidate onSubmit={enviar} className="relative mt-8 flex flex-col gap-5">
-            <Campo
-              id="dato-nombre"
-              etiqueta={texts.reservar.campos.nombre}
-              autoComplete="name"
-              maxLength={MAX_NOMBRE}
-              value={datos.nombre}
-              onChange={cambiar('nombre')}
-              error={errores.nombre}
-              required
-            />
-            <Campo
-              id="dato-telefono"
-              etiqueta={texts.reservar.campos.telefono}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={datos.telefono}
-              onChange={cambiar('telefono')}
-              error={errores.telefono}
-              ayuda={texts.reservar.ayudaTelefono}
-              required
-            />
-            <Campo
-              id="dato-email"
-              etiqueta={texts.reservar.campos.email}
-              opcional={texts.reservar.campos.opcional}
-              type="email"
-              autoComplete="email"
-              maxLength={MAX_EMAIL}
-              value={datos.email}
-              onChange={cambiar('email')}
-              error={errores.email}
-            />
-            <Campo
-              id="dato-notas"
-              etiqueta={texts.reservar.campos.notas}
-              opcional={texts.reservar.campos.opcional}
-              multilinea
-              maxLength={MAX_NOTAS}
-              value={datos.notas}
-              onChange={cambiar('notas')}
-              error={errores.notas}
-              ayuda={texts.reservar.ayudaNotas}
-            />
+          {/* El form envuelve la Card: sigue siendo el elemento semántico y la Card solo da el aspecto */}
+          <form noValidate onSubmit={enviar} aria-labelledby="titulo-formulario" className="relative mt-8">
+            <Card>
+              {/* CardTitle es un div: el h2 va dentro para tener un encabezado real */}
+              <CardHeader>
+                <CardTitle>
+                  <h2 id="titulo-formulario" className="font-display text-xl">
+                    {texts.reservar.tituloFormulario}
+                  </h2>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-5">
+                <Campo
+                  id="dato-nombre"
+                  etiqueta={texts.reservar.campos.nombre}
+                  autoComplete="name"
+                  maxLength={MAX_NOMBRE}
+                  value={datos.nombre}
+                  onChange={cambiar('nombre')}
+                  error={errores.nombre}
+                  required
+                />
+                <Campo
+                  id="dato-telefono"
+                  etiqueta={texts.reservar.campos.telefono}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={datos.telefono}
+                  onChange={cambiar('telefono')}
+                  error={errores.telefono}
+                  required
+                />
+                <Campo
+                  id="dato-email"
+                  etiqueta={texts.reservar.campos.email}
+                  opcional={texts.reservar.campos.opcional}
+                  type="email"
+                  autoComplete="email"
+                  maxLength={MAX_EMAIL}
+                  value={datos.email}
+                  onChange={cambiar('email')}
+                  error={errores.email}
+                />
+                <Campo
+                  id="dato-notas"
+                  etiqueta={texts.reservar.campos.notas}
+                  opcional={texts.reservar.campos.opcional}
+                  multilinea
+                  maxLength={MAX_NOTAS}
+                  value={datos.notas}
+                  onChange={cambiar('notas')}
+                  error={errores.notas}
+                  ayuda={texts.reservar.ayudaNotas}
+                />
+
+                <Aviso estado={estado} ids={ids} fecha={fecha} hora={hora} />
+              </CardContent>
+
+              <CardFooter className="block">
+                {/* Con la hora ocupada no tiene sentido reintentar: la salida es elegir otra */}
+                {estado !== 'ocupada' && (
+                  <Button
+                    type="submit"
+                    disabled={enviando}
+                    className="h-12 w-full rounded-full text-base md:w-auto md:px-10"
+                  >
+                    {enviando ? texts.reservar.confirmando : texts.reservar.confirmar}
+                  </Button>
+                )}
+                <p className="mt-3 text-sm text-muted">
+                  {texts.reservar.privacidad}{' '}
+                  <Link to="/privacidad" className="font-medium text-primary underline underline-offset-4">
+                    {texts.reservar.verPrivacidad}
+                  </Link>
+                </p>
+              </CardFooter>
+            </Card>
 
             {/* Campo trampa: fuera de la vista y de los lectores de pantalla; solo lo rellena un bot */}
             <div aria-hidden="true" className="absolute -left-[9999px] size-px overflow-hidden">
@@ -236,27 +270,6 @@ export default function DatosPage() {
                   onChange={(e) => setWebsite(e.target.value)}
                 />
               </label>
-            </div>
-
-            <Aviso estado={estado} ids={ids} fecha={fecha} hora={hora} />
-
-            <div>
-              {/* Con la hora ocupada no tiene sentido reintentar: la salida es elegir otra */}
-              {estado !== 'ocupada' && (
-                <Button
-                  type="submit"
-                  disabled={enviando}
-                  className="h-12 w-full rounded-full text-base md:w-auto md:px-10"
-                >
-                  {enviando ? texts.reservar.confirmando : texts.reservar.confirmar}
-                </Button>
-              )}
-              <p className="mt-3 text-sm text-muted">
-                {texts.reservar.privacidad}{' '}
-                <Link to="/privacidad" className="font-medium text-primary underline underline-offset-4">
-                  {texts.reservar.verPrivacidad}
-                </Link>
-              </p>
             </div>
           </form>
         </>

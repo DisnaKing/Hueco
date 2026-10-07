@@ -124,6 +124,7 @@ export default {
     sinHuecos: (dias) => `No quedan horas libres en los próximos ${dias} días`,
     errorHuecos: 'No podemos mostrar las horas ahora mismo',
     tituloDatos: 'Tus datos',
+    tituloFormulario: '¿A nombre de quién?',
     cuando: 'Cuándo',
     cambiarFecha: 'Cambiar fecha u hora',
     campos: {
@@ -133,7 +134,6 @@ export default {
       notas: 'Notas para el comercio',
       opcional: '(opcional)',
     },
-    ayudaTelefono: 'Te llamaremos solo si hay algún cambio en tu cita.',
     ayudaNotas: 'Por ejemplo: pelo muy largo, vengo con mi hija…',
     errores: {
       nombre: 'Escribe tu nombre',

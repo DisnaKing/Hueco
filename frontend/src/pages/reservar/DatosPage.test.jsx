@@ -142,4 +142,27 @@ describe('Paso 3: confirmar la cita', () => {
     expect(trampa.closest('[aria-hidden=true]')).not.toBeNull()
     expect(screen.queryByRole('textbox', { name: 'Web' })).toBeNull()
   })
+
+  it('el formulario se anuncia por su título y contiene los campos y el botón', async () => {
+    mockFetch()
+    renderPaso3()
+
+    const formulario = await screen.findByRole('form', { name: '¿A nombre de quién?' })
+    for (const etiqueta of ['Nombre', 'Teléfono', /Email/, /Notas para el comercio/]) {
+      expect(within(formulario).getByLabelText(etiqueta)).toBeTruthy()
+    }
+    expect(within(formulario).getByRole('button', { name: 'Confirmar cita' })).toBeTruthy()
+  })
+
+  it('el teléfono no lleva ayuda y las notas sí', async () => {
+    mockFetch()
+    renderPaso3()
+
+    const telefono = await screen.findByLabelText('Teléfono')
+    expect(telefono.hasAttribute('aria-describedby')).toBe(false)
+    const notas = screen.getByLabelText(/Notas para el comercio/)
+    expect(document.getElementById(notas.getAttribute('aria-describedby')).textContent).toBe(
+      'Por ejemplo: pelo muy largo, vengo con mi hija…',
+    )
+  })
 })
